@@ -5,6 +5,9 @@ import javafx.fxml.FXML
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
 import javafx.stage.Stage
+import javafx.scene.control.Alert
+import javafx.scene.control.Alert.AlertType
+import javafx.scene.control.ButtonType
 
 /**
  * Controller for the Add/Edit Medication dialog.
@@ -44,11 +47,23 @@ class AddMedicationController {
      */
     @FXML
     private fun handleSaveButton() {
-        // TODO: Add input validation here (e.g., check if generic name is not empty)
-        // If validation fails, show an error message and return
+        // --- Input Validation ---
+        val genericName = genericNameField.text.trim()
+
+        if (genericName.isBlank()) {    // Check if generic name is empty or contains only whitespace
+            // Show a warning message to the user
+            showAlert(
+                AlertType.WARNING,
+                "Validation Error",
+                "Missing Required Field",
+                "Please enter a Generic Name for the medication."
+            )
+            return  // Stop the save process if validation fails
+        }
+        // --- End Validation ---
 
         // Collect data from input fields
-        val genericName = genericNameField.text.trim()  // Use trim() to remove leading/trailing whitespace
+        // genericName already collected above
         val brandName = brandNameField.text.trim().takeIf { it.isNotEmpty() }   // Use takeIf for optional fields
         val dosage = dosageField.text.trim().takeIf { it.isNotEmpty() }
         val instructions = instructionsArea.text.trim().takeIf { it.isNotEmpty() }
@@ -99,6 +114,22 @@ class AddMedicationController {
         // Get the stage from any of the FXML elements
         val stage = genericNameField.scene.window as Stage  // Cast to Stage
         stage.close()   // Close the window
+    }
+
+    /**
+     * Helper function to show a JavaFX alert dialog.
+     *
+     * @param alertType The type of alert (e.g,. WARNING, ERROR, INFORMATION).
+     * @param title The title of the alert window.
+     * @param header The header text of the alert (can be null)
+     * @param content The main content text of the alert
+     */
+    private fun showAlert(alertType: AlertType, title: String, header: String?, content: String) {
+        val alert = Alert(alertType)
+        alert.title = title
+        alert.headerText = header
+        alert.contentText = content
+        alert.showAndWait() // Show the alert and wait for the user to close it
     }
 
     // TODO: Add a public method to set data for editing existing medications (takes a Medication object)
