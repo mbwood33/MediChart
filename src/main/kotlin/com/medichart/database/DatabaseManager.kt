@@ -260,6 +260,59 @@ class DatabaseManager {
         } ?: System.err.println("Failed to connect to database for unarchiving.")
     }
 
+    /**
+     * Deletes a medication record from the 'current_meds' table by its ID.
+     *
+     * @param id The ID of the medication to delete.
+     */
+    fun deleteCurrentMedication(id: Int) {
+        val sql = "DELETE FROM current_meds WHERE id = ?"
+
+        connect()?.use { conn ->
+            try {
+                conn.prepareStatement(sql).use { pstmt ->
+                    pstmt.setInt(1, id)
+                    val rowsAffected = pstmt.executeUpdate()
+                    if (rowsAffected > 0) {
+                        println("Medication with ID $id deleted successfully.") // Optional: for debugging
+                    } else {
+                        println("No medication found with ID $id.") // Optional: for debugging
+                    }
+                }
+            } catch (e: SQLException) {
+                System.err.println("Error deleting medication: ${e.message}")
+                // TODO: Handle or log the error appropriately
+            }
+        } ?: System.err.println("Failed to connect to database to delete medication.")
+    }
+
+    /**
+     * Deletes a past medication record from the 'past_meds' table by its ID.
+     *
+     * @param id The ID of the past medication to delete.
+     */
+    fun deletePastMedication(id: Int) {
+        val sql = "DELETE FROM past_meds WHERE id = ?"
+
+        connect()?.use { conn ->
+            try {
+                conn.prepareStatement(sql).use { pstmt ->
+                    pstmt.setInt(1, id)
+                    val rowsAffected = pstmt.executeUpdate()
+                    if (rowsAffected > 0) {
+                        println("Past medication with ID $id deleted successfully.")    // Optional: for debugging
+                    } else {
+                        println("No past medication found with ID $id.")    // Optional: for debugging
+                    }
+                }
+            } catch (e: SQLException) {
+                System.err.println("Error deleting past medication: ${e.message}")
+                // TODO: Handle or log the error appropriately
+            }
+        } ?: System.err.println("Failed to connect to database to delete past medication.")
+    }
+
+
 
     /**
      * Retrieves all medications from the 'past_meds' table.

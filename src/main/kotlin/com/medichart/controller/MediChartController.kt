@@ -236,6 +236,62 @@ class MediChartController {
     }
 
     /**
+     * Handles the action of deleting the selected current medication.
+     * Gets the selected item, confirms deletion, calls database delete, and refreshes table.
+     */
+    @FXML
+    private fun handleDeleteCurrentMedication() {
+        val selectedMed = currentMedicationsTable.selectionModel.selectedItem
+
+        if (selectedMed != null) {
+            // TODO: Add a confirmation dialog here before actually deleting!
+            // e.g., Alert(AlertType.CONFIRMATION, "Are you sure you want to delete {$selectedMed.brandName ?: selectedMed.genericName}?")
+            // If user confirms:
+
+            println("Delete Medication button called for: ${selectedMed.brandName ?: selectedMed.genericName}")
+
+            // Call the database method to delete the record
+            dbManager.deleteCurrentMedication(selectedMed.id)
+
+            // Refresh the current medications table to show the change
+            loadCurrentMedications()
+
+            println("Current medication deleted.")
+        } else {
+            println("No medication selected for deletion.")
+            // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
+        }
+    }
+
+    /**
+     * Handles the action of deleting the selected past medication.
+     * Gets the selected item, confirms deletion, calls databse delete, and refreshes table.
+     */
+    @FXML
+    private fun handleDeletePastMedication() {
+        val selectedPastMed = pastMedicationsTable.selectionModel.selectedItem
+
+        if (selectedPastMed != null) {
+            // TODO: Add a confirmation dialog here before actually deleting past med!
+            // e.g., Alert(AlertType.CONFIRMATION, "Are you sure you want to delete history for ${selectedPastMed.brandName ?: selectedPastMed.genericName}?")
+            // If user confirms:
+
+            println("Delete Past Medication button clicked for: ${selectedPastMed.brandName ?: selectedPastMed.genericName}")
+
+            // Call the database method to delete the record
+            dbManager.deletePastMedication(selectedPastMed.id)
+
+            // Refresh the past medications table to show the change
+            loadPastMedications()
+
+            println("Past medication deleted.")
+        } else {
+            println("No past medication selected for deletion.")
+            // TODO: Show a warning or information dialog to the user
+        }
+    }
+
+    /**
      * Handles the action of unarchiving the selected past medication.
      * Moves the selected medication from the history list back to the current list.
      */

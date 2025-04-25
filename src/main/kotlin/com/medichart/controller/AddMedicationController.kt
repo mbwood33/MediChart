@@ -8,6 +8,9 @@ import javafx.stage.Stage
 import javafx.scene.control.Alert
 import javafx.scene.control.Alert.AlertType
 import javafx.scene.control.ButtonType
+import javafx.scene.Scene
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyEvent
 
 /**
  * Controller for the Add/Edit Medication dialog.
@@ -33,6 +36,9 @@ class AddMedicationController {
     var medicationData: Medication? = null
         private set // Make setter private
 
+    // Keep a reference to the dialog stage
+    private var dialogStage: Stage? = null
+
     /**
      * Called by FXMLLoader after the FXML is loaded and elements are injected.
      * Can be used for initial setup if needed (e.g, pre-filling fields for editing).
@@ -41,6 +47,39 @@ class AddMedicationController {
     fun initialize() {
         // Initial setup if needed. For adding, fields start empty.
         // For editing, this is where you would pre-fill fields based on the Medication object being edited.
+    }
+
+    /**
+     * This method is called by the main controller after loading the FXML
+     * to provide a reference to the dialog's stage and set up key event listeners.
+     *
+     * @param stage The Stage that hosts this dialog.
+     */
+    fun setDialogStage(stage: Stage) {
+        dialogStage = stage
+
+        // Add event filter to the scene for key presses
+        dialogStage?.scene?.addEventFilter(KeyEvent.KEY_PRESSED) { event ->
+            when (event.code) {
+                KeyCode.ENTER -> {
+                    // Check if the focus is *not* on a TextArea before triggering save with Enter
+                    // This allows multiline input in TextAreas
+                    if (dialogStage?.scene?.focusOwner !is TextArea) {
+                        handleSaveButton()  // Call the save handler
+                        event.consume() // Consume the event so it doesn't do anything else (like add a newline)
+                    }
+                }
+                KeyCode.ESCAPE -> {
+                    handleCancelButton()    // Call the cancel handler
+                    event.consume() // Consume the event
+                }
+                else -> {
+                    // Do nothing for other keys
+                }
+            }
+        }
+        // Standard tabbing between controls should work automatically once controls are added to scene.
+        // If tabbing isn't working, it might indicate a more complex focus issue or OS interaction.
     }
 
     /**
