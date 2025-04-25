@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/23" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.medichart.controller.MediChartController">
+    <center>
+        <TabPane prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
+            <tabs>
+                <Tab text="Current Medications">
+                    <content>
+                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                            <children>
+                                <VBox layoutX="10.0" layoutY="10.0" prefHeight="550.0" prefWidth="780.0" spacing="10.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
+                                    <children>
+                                        <TableView fx:id="currentMedicationsTable" prefHeight="480.0" prefWidth="780.0">
+                                            <columns>
+                                                <TableColumn fx:id="currentBrandNameColumn" prefWidth="100.0" text="Brand Name" />
+                                                <TableColumn fx:id="currentGenericNameColumn" prefWidth="120.0" text="Generic Name" />
+                                                <TableColumn fx:id="currentDosageColumn" prefWidth="80.0" text="Dosage" />
+                                                <TableColumn fx:id="currentInstructionsColumn" prefWidth="150.0" text="Instructions" />
+                                                <TableColumn fx:id="currentReasonColumn" prefWidth="100.0" text="Reason" />
+                                                <TableColumn fx:id="currentPrescriberColumn" prefWidth="100.0" text="Prescriber" />
+                                                <TableColumn fx:id="currentStartDateColumn" prefWidth="100.0" text="Start Date" />
+                                                <TableColumn fx:id="currentNotesColumn" prefWidth="150.0" text="Notes" />
+                                            </columns>
+                                            <columnResizePolicy>
+                                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                            </columnResizePolicy>
+                                        </TableView>
+                                        <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="780.0" spacing="10.0">
+                                            <children>
+                                                <Button mnemonicParsing="false" onAction="#handleAddMedication" text="Add Medication" />
+                                                <Button mnemonicParsing="false" onAction="#handleEditMedication" text="Edit Medication" />
+                                                <Button mnemonicParsing="false" onAction="#handleArchiveMedication" text="Archive Medication" />
+                                                <Region HBox.hgrow="ALWAYS" />
+                                                <Label text="Sort By:" />
+                                                <Button mnemonicParsing="false" onAction="#handleSortByBrandName" text="Brand Name" />
+                                            </children>
+                                        </HBox>
+                                        <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
+                                            <children>
+                                                <Button mnemonicParsing="false" onAction="#handlePrintCurrentMeds" text="Print Table" />
+                                                <Button mnemonicParsing="false" onAction="#handleExportCurrentMedsPDF" text="Export to PDF" />
+                                                <Button mnemonicParsing="false" onAction="#handleExportCurrentMedsWord" text="Export to Word" />
+                                            </children>
+                                        </HBox>
+                                    </children>
+                                </VBox>
+                            </children>
+                        </AnchorPane>
+                    </content>
+                </Tab>
+                <Tab text="Medication History">
+                    <content>
+                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                            <children>
+                                <VBox layoutX="10.0" layoutY="10.0" prefHeight="550.0" prefWidth="780.0" spacing="10.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
+                                    <children>
+                                        <TableView fx:id="pastMedicationsTable" prefHeight="480.0" prefWidth="780.0">
+                                            <columns>
+                                                <TableColumn fx:id="pastBrandNameColumn" prefWidth="100.0" text="Brand Name" />
+                                                <TableColumn fx:id="pastGenericNameColumn" prefWidth="120.0" text="Generic Name" />
+                                                <TableColumn fx:id="pastDosageColumn" prefWidth="80.0" text="Dosage" />
+                                                <TableColumn fx:id="pastInstructionsColumn" prefWidth="150.0" text="Instructions" />
+                                                <TableColumn fx:id="pastReasonColumn" prefWidth="100.0" text="Reason Taken" />
+                                                <TableColumn fx:id="pastPrescriberColumn" prefWidth="100.0" text="Prescriber" />
+                                                <TableColumn fx:id="pastHistoryNotesColumn" prefWidth="150.0" text="History Notes" />
+                                                <TableColumn fx:id="pastReasonForStoppingColumn" prefWidth="100.0" text="Reason Stopped" />
+                                            </columns>
+                                            <columnResizePolicy>
+                                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                            </columnResizePolicy>
+                                        </TableView>
+                                        <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
+                                            <children>
+                                                <Button mnemonicParsing="false" onAction="#handleUnarchiveMedication" text="Unarchive Selected" />
+                                            </children>
+                                        </HBox>
+                                    </children>
+                                </VBox>
+                            </children>
+                        </AnchorPane>
+                    </content>
+                </Tab>
+                <Tab text="Surgery History">
+                    <content>
+                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                            <children>
+                                <VBox layoutX="10.0" layoutY="10.0" prefHeight="550.0" prefWidth="780.0" spacing="10.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
+                                    <children>
+                                        <TableView fx:id="surgeriesTable" prefHeight="480.0" prefWidth="780.0">
+                                            <columns>
+                                                <TableColumn fx:id="surgeryNameColumn" prefWidth="200.0" text="Surgery" />
+                                                <TableColumn fx:id="surgeryDateColumn" prefWidth="150.0" text="Date" />
+                                                <TableColumn fx:id="surgerySurgeonColumn" prefWidth="200.0" text="Surgeon" />
+                                            </columns>
+                                            <columnResizePolicy>
+                                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                            </columnResizePolicy>
+                                        </TableView>
+                                        <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
+                                            <children>
+                                                <Button mnemonicParsing="false" onAction="#handleAddSurgery" text="Add Surgery" />
+                                            </children>
+                                        </HBox>
+                                    </children>
+                                </VBox>
+                            </children>
+                        </AnchorPane>
+                    </content>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </center>
+</BorderPane>
