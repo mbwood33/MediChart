@@ -30,7 +30,7 @@ class MediChartApp : Application() {    // Extend Application() directly
         // Load the FXML file. Get the resource URL relative to the MediChartApp class.
         val fxmlLoader = FXMLLoader(MediChartApp::class.java.getResource("MediChart.fxml"))
         // Create the scene using the loaded FXML root node
-        val scene = Scene(fxmlLoader.load(), 800.0, 600.0)  // Use .0 for Double literals for dimensions
+        val scene = Scene(fxmlLoader.load(), 1200.0, 600.0)  // Use .0 for Double literals for dimensions
         stage.title = "MediChart"   // Property access for getters/setters
         stage.scene = scene
         stage.show()

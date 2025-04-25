@@ -4,6 +4,7 @@ import com.medichart.database.DatabaseManager
 import com.medichart.model.Medication
 import com.medichart.model.PastMedication
 import com.medichart.model.Surgery
+import javafx.beans.property.Property
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.fxml.FXML
@@ -30,21 +31,25 @@ class MediChartController {
     @FXML lateinit var currentBrandNameColumn: TableColumn<Medication, String>
     @FXML lateinit var currentGenericNameColumn: TableColumn<Medication, String>
     @FXML lateinit var currentDosageColumn: TableColumn<Medication, String>
+    @FXML lateinit var currentDoseFormColumn: TableColumn<Medication, String>
     @FXML lateinit var currentInstructionsColumn: TableColumn<Medication, String>
     @FXML lateinit var currentReasonColumn: TableColumn<Medication, String>
     @FXML lateinit var currentPrescriberColumn: TableColumn<Medication, String>
     @FXML lateinit var currentNotesColumn: TableColumn<Medication, String>
     @FXML lateinit var currentStartDateColumn: TableColumn<Medication, String>
+    @FXML lateinit var currentManufacturerColumn: TableColumn<Medication, String>
 
     @FXML lateinit var pastMedicationsTable: TableView<PastMedication>
     @FXML lateinit var pastBrandNameColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastGenericNameColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastDosageColumn: TableColumn<PastMedication, String>
+    @FXML lateinit var pastDoseFormColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastInstructionsColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastReasonColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastPrescriberColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastHistoryNotesColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastReasonForStoppingColumn: TableColumn<PastMedication, String>
+    @FXML lateinit var pastManufacturerColumn: TableColumn<PastMedication, String>
     // Note: Displaying List<DateRange> in a TableColumn directly requires custom cell factories
     // @FXML lateinit var pastDateRangesColumn: TableColumn<PastMedication, List<PastMedication.DateRange>>
 
@@ -72,21 +77,25 @@ class MediChartController {
         currentBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
         currentGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
         currentDosageColumn.cellValueFactory = PropertyValueFactory("dosage")
+        currentDoseFormColumn.cellValueFactory = PropertyValueFactory("doseForm")
         currentInstructionsColumn.cellValueFactory = PropertyValueFactory("instructions")
         currentReasonColumn.cellValueFactory = PropertyValueFactory("reason")
         currentPrescriberColumn.cellValueFactory = PropertyValueFactory("prescriber")
         currentNotesColumn.cellValueFactory = PropertyValueFactory("notes")
         currentStartDateColumn.cellValueFactory = PropertyValueFactory("startDate")
+        currentManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
 
         // Set up Past Medications Table Columns
         pastBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
         pastGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
         pastDosageColumn.cellValueFactory = PropertyValueFactory("dosage")
+        pastDoseFormColumn.cellValueFactory = PropertyValueFactory("doseForm")
         pastInstructionsColumn.cellValueFactory = PropertyValueFactory("instructions")
         pastReasonColumn.cellValueFactory = PropertyValueFactory("reason")
         pastPrescriberColumn.cellValueFactory = PropertyValueFactory("prescriber")
         pastHistoryNotesColumn.cellValueFactory = PropertyValueFactory("historyNotes")
         pastReasonForStoppingColumn.cellValueFactory = PropertyValueFactory("reasonForStopping")
+        pastManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
         // TODO: Implement custom cell factory for pastDateRangeColumn if needed to display List<DateRange>
         // pastDateRangesColumn..cellValueFactory = PropertyValueFactory("dateRanges")  // This won't work directly for List
 

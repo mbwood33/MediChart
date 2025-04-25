@@ -18,11 +18,13 @@ class AddMedicationController {
     @FXML lateinit var genericNameField: TextField
     @FXML lateinit var brandNameField: TextField
     @FXML lateinit var dosageField: TextField
+    @FXML lateinit var doseFormField: TextField
     @FXML lateinit var instructionsArea: TextArea
     @FXML lateinit var reasonField: TextField
     @FXML lateinit var prescriberField: TextField
     @FXML lateinit var notesArea: TextArea
     @FXML lateinit var startDateField: TextField    // For the start date
+    @FXML lateinit var manufacturerField: TextField
 
     // Properties to hold the result of the dialog
     var isSavedSuccessful: Boolean = false
@@ -63,14 +65,16 @@ class AddMedicationController {
         // --- End Validation ---
 
         // Collect data from input fields
-        // genericName already collected above
+        // !-- genericName already collected above --!
         val brandName = brandNameField.text.trim().takeIf { it.isNotEmpty() }   // Use takeIf for optional fields
         val dosage = dosageField.text.trim().takeIf { it.isNotEmpty() }
+        val doseForm = doseFormField.text.trim().takeIf {it.isNotEmpty() }
         val instructions = instructionsArea.text.trim().takeIf { it.isNotEmpty() }
         val reason = reasonField.text.trim().takeIf { it.isNotEmpty() }
         val prescriber = prescriberField.text.trim().takeIf { it.isNotEmpty() }
         val notes = notesArea.text.trim().takeIf { it.isNotEmpty() }
         val startDate = startDateField.text.trim().takeIf { it.isNotEmpty() }
+        val manufacturer = manufacturerField.text.trim().takeIf { it.isNotEmpty() }
 
         // Create a Medication object from the input
         // Use 0 for ID as the database will assign the real ID on insertion
@@ -79,11 +83,13 @@ class AddMedicationController {
             genericName = genericName,
             brandName = brandName,
             dosage = dosage,
+            doseForm = doseForm,
             instructions = instructions,
             reason = reason,
             prescriber = prescriber,
             notes = notes,
-            startDate = startDate
+            startDate = startDate,
+            manufacturer = manufacturer
         )
 
         // Signal that the save was successful

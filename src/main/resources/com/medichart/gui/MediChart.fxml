@@ -18,11 +18,13 @@
                                                 <TableColumn fx:id="currentBrandNameColumn" prefWidth="100.0" text="Brand Name" />
                                                 <TableColumn fx:id="currentGenericNameColumn" prefWidth="120.0" text="Generic Name" />
                                                 <TableColumn fx:id="currentDosageColumn" prefWidth="80.0" text="Dosage" />
+                                                <TableColumn fx:id="currentDoseFormColumn" prefWidth="100.0" text="Dose Form" />
                                                 <TableColumn fx:id="currentInstructionsColumn" prefWidth="150.0" text="Instructions" />
                                                 <TableColumn fx:id="currentReasonColumn" prefWidth="100.0" text="Reason" />
                                                 <TableColumn fx:id="currentPrescriberColumn" prefWidth="100.0" text="Prescriber" />
                                                 <TableColumn fx:id="currentStartDateColumn" prefWidth="100.0" text="Start Date" />
                                                 <TableColumn fx:id="currentNotesColumn" prefWidth="150.0" text="Notes" />
+                                                <TableColumn fx:id="currentManufacturerColumn" prefWidth="150.0" text="Manufacturer" />
                                             </columns>
                                             <columnResizePolicy>
                                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
@@ -62,11 +64,13 @@
                                                 <TableColumn fx:id="pastBrandNameColumn" prefWidth="100.0" text="Brand Name" />
                                                 <TableColumn fx:id="pastGenericNameColumn" prefWidth="120.0" text="Generic Name" />
                                                 <TableColumn fx:id="pastDosageColumn" prefWidth="80.0" text="Dosage" />
+                                                <TableColumn fx:id="pastDoseFormColumn" prefWidth="100.0" text="Dose Form" />
                                                 <TableColumn fx:id="pastInstructionsColumn" prefWidth="150.0" text="Instructions" />
                                                 <TableColumn fx:id="pastReasonColumn" prefWidth="100.0" text="Reason Taken" />
                                                 <TableColumn fx:id="pastPrescriberColumn" prefWidth="100.0" text="Prescriber" />
                                                 <TableColumn fx:id="pastHistoryNotesColumn" prefWidth="150.0" text="History Notes" />
                                                 <TableColumn fx:id="pastReasonForStoppingColumn" prefWidth="100.0" text="Reason Stopped" />
+                                                <TableColumn fx:id="pastManufacturerColumn" prefWidth="150.0" text="Manufacturer" />
                                             </columns>
                                             <columnResizePolicy>
                                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

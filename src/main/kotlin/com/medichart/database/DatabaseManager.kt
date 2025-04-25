@@ -45,11 +45,13 @@ class DatabaseManager {
                 generic_name TEXT NOT NULL,
                 brand_name TEXT,
                 dosage TEXT,
+                dose_form TEXT,
                 instructions TEXT,
                 reason TEXT,
                 prescriber TEXT,
                 notes TEXT, -- Current medication notes
-                start_date TEXT -- Optional start date
+                start_date TEXT, -- Optional start date
+                manufacturer TEXT
             );
         """.trimIndent() // Use trimIndent for multiline strings
 
@@ -59,12 +61,14 @@ class DatabaseManager {
                 generic_name TEXT NOT NULL,
                 brand_name TEXT,
                 dosage TEXT,
+                dose_form TEXT,
                 instructions TEXT,
                 reason TEXT,
                 prescriber TEXT,
                 history_notes TEXT, -- Notes about effectiveness, side effects, etc.
                 reason_for_stopping TEXT,
-                date_ranges TEXT -- Store as a delimited string or JSON for simplicity initially
+                date_ranges TEXT, -- Store as a delimited string or JSON for simplicity initially
+                manufacturer TEXT
             );
         """.trimIndent()
 
@@ -93,18 +97,20 @@ class DatabaseManager {
      * @param med The Medication object to add.
      */
     fun addMedication(med: Medication) {
-        val sql = "INSERT INTO current_meds(generic_name, brand_name, dosage, instructions, reason, prescriber, notes, start_date) VALUES(?,?,?,?,?,?,?,?)"
+        val sql = "INSERT INTO current_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, notes, start_date, manufacturer) VALUES(?,?,?,?,?,?,?,?,?,?)"
 
         connect()?.use { conn ->
             conn.prepareStatement(sql).use { pstmt ->
                 pstmt.setString(1, med.genericName)
                 pstmt.setString(2, med.brandName)
                 pstmt.setString(3, med.dosage)
-                pstmt.setString(4, med.instructions)
-                pstmt.setString(5, med.reason)
-                pstmt.setString(6, med.prescriber)
-                pstmt.setString(7, med.notes)
-                pstmt.setString(8, med.startDate)
+                pstmt.setString(4, med.doseForm)
+                pstmt.setString(5, med.instructions)
+                pstmt.setString(6, med.reason)
+                pstmt.setString(7, med.prescriber)
+                pstmt.setString(8, med.notes)
+                pstmt.setString(9, med.startDate)
+                pstmt.setString(10, med.manufacturer)
                 pstmt.executeUpdate()
                 // System.out.println("Medication added: ${med.brandName}") // Optional: for debugging
             }
@@ -117,7 +123,7 @@ class DatabaseManager {
      * @return A list of Medication objects.
      */
     fun getAllCurrentMedications(): List<Medication> {
-        val sql = "SELECT id, generic_name, brand_name, dosage, instructions, reason, prescriber, notes, start_date FROM current_meds"
+        val sql = "SELECT id, generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, notes, start_date, manufacturer FROM current_meds"
         val medications = mutableListOf<Medication>() // Use mutable list
 
         connect()?.use { conn ->
@@ -130,11 +136,13 @@ class DatabaseManager {
                             rs.getString("generic_name"),
                             rs.getString("brand_name"),
                             rs.getString("dosage"),
+                            rs.getString("dose_form"),
                             rs.getString("instructions"),
                             rs.getString("reason"),
                             rs.getString("prescriber"),
                             rs.getString("notes"),
-                            rs.getString("start_date")
+                            rs.getString("start_date"),
+                            rs.getString("manufacturer")
                         )
                         medications.add(med)
                     }
@@ -157,7 +165,7 @@ class DatabaseManager {
         // Basic Implementation: Insert into past_meds, then delete from current_meds
 
         // Insert into past_meds
-        val insertSql = "INSERT INTO past_meds(generic_name, brand_name, dosage, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges) VALUES(?,?,?,?,?,?,?,?,?)"
+        val insertSql = "INSERT INTO past_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
 
         connect()?.use { conn ->
             try {
@@ -167,12 +175,15 @@ class DatabaseManager {
                     pstmt.setString(1, med.genericName)
                     pstmt.setString(2, med.brandName)
                     pstmt.setString(3, med.dosage)
-                    pstmt.setString(4, med.instructions)
-                    pstmt.setString(5, med.reason)
-                    pstmt.setString(6, med.prescriber)
-                    pstmt.setString(7, med.notes) // Copy current notes to history_notes initially
-                    pstmt.setString(8, "") // Reason for stopping - will need to be added by user later
-                    pstmt.setString(9, med.startDate?.let { "$it to Present" } ?: "Unknown Start to Present") // Simple date range representation
+                    pstmt.setString(4, med.doseForm)
+                    pstmt.setString(5, med.instructions)
+                    pstmt.setString(6, med.reason)
+                    pstmt.setString(7, med.prescriber)
+                    pstmt.setString(8, med.notes) // Copy current notes to history_notes initially
+                    pstmt.setString(9, "") // Reason for stopping - will need to be added by user later
+                    pstmt.setString(10, med.startDate?.let { "$it to Present" } ?: "Unknown Start to Present") // Simple date range representation
+                    pstmt.setString(11, med.manufacturer)
+
 
                     pstmt.executeUpdate()
                     // System.out.println("Medication archived to history (insert step): ${med.brandName}") // Optional: for debugging
@@ -187,7 +198,6 @@ class DatabaseManager {
                 }
 
                 conn.commit() // Commit transaction
-                // System.out.println("Medication archived successfully.")
 
             } catch (e: SQLException) {
                 System.err.println("Error archiving medication: ${e.message}")
@@ -206,7 +216,7 @@ class DatabaseManager {
     fun unarchiveMedication(pastMed: PastMedication) {
         // Basic Implementation: Insert into current_meds, then delete from past_meds
 
-        val insertSql = "INSERT INTO current_meds(generic_name, brand_name, dosage, instructions, reason, prescriber, notes, start_date) VALUES(?,?,?,?,?,?,?,?)"
+        val insertSql = "INSERT INTO current_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, notes, start_date, manufacturer) VALUES(?,?,?,?,?,?,?,?,?,?)"
         val deleteSql = "DELETE FROM past_meds WHERE id = ?"
 
         connect()?.use { conn ->
@@ -218,12 +228,14 @@ class DatabaseManager {
                     pstmt.setString(1, pastMed.genericName)
                     pstmt.setString(2, pastMed.brandName)
                     pstmt.setString(3, pastMed.dosage)
-                    pstmt.setString(4, pastMed.instructions)
-                    pstmt.setString(5, pastMed.reason)
-                    pstmt.setString(6, pastMed.prescriber)
-                    pstmt.setString(7, pastMed.historyNotes) // Copy history notes to current notes
+                    pstmt.setString(4, pastMed.doseForm)
+                    pstmt.setString(5, pastMed.instructions)
+                    pstmt.setString(6, pastMed.reason)
+                    pstmt.setString(7, pastMed.prescriber)
+                    pstmt.setString(8, pastMed.historyNotes) // Copy history notes to current notes
                     // When unarchiving, the start date is "now". Let's use a placeholder.
-                    pstmt.setString(8, "Re-started") // Placeholder for new start date
+                    pstmt.setString(9, "Re-started") // Placeholder for new start date
+                    pstmt.setString(10, pastMed.manufacturer)
 
                     pstmt.executeUpdate()
                     // System.out.println("Medication unarchived to current (insert step): ${pastMed.brandName}") // Optional: for debugging
@@ -257,36 +269,42 @@ class DatabaseManager {
      * @return A list of PastMedication objects.
      */
     fun getAllPastMedications(): List<PastMedication> {
-        val sql = "SELECT id, generic_name, brand_name, dosage, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges FROM past_meds"
+        val sql = "SELECT id, generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer FROM past_meds"
         val pastMedications = mutableListOf<PastMedication>()
 
         connect()?.use { conn ->
-            conn.createStatement().use { stmt ->
-                stmt.executeQuery(sql).use { rs ->
-                    // loop through the result set
-                    while (rs.next()) {
-                        // TODO: Implement parsing of date_ranges string into List<PastMedication.DateRange>
-                        val dateRanges = listOf<PastMedication.DateRange>() // Placeholder for parsed list
+            try {
+                conn.createStatement().use { stmt ->
+                    stmt.executeQuery(sql).use { rs ->
+                        // loop through the result set
+                        while (rs.next()) {
+                            // TODO: Implement parsing of date_ranges string into List<PastMedication.DateRange>
+                            val dateRanges = listOf<PastMedication.DateRange>() // Placeholder for parsed list
 
-                        val pastMed = PastMedication(
-                            rs.getInt("id"),
-                            rs.getString("generic_name"),
-                            rs.getString("brand_name"),
-                            rs.getString("dosage"),
-                            rs.getString("instructions"),
-                            rs.getString("reason"),
-                            rs.getString("prescriber"),
-                            rs.getString("history_notes"),
-                            rs.getString("reason_for_stopping"),
-                            dateRanges // Use the parsed list
-                        )
-                        pastMedications.add(pastMed)
+                            val pastMed = PastMedication(
+                                rs.getInt("id"),
+                                rs.getString("generic_name"),
+                                rs.getString("brand_name"),
+                                rs.getString("dosage"),
+                                rs.getString("dose_form"),
+                                rs.getString("instructions"),
+                                rs.getString("reason"),
+                                rs.getString("prescriber"),
+                                rs.getString("history_notes"),
+                                rs.getString("reason_for_stopping"),
+                                dateRanges, // Use the parsed list
+                                rs.getString("manufacturer")
+                            )
+                            pastMedications.add(pastMed)
+                        }
                     }
                 }
+            } catch (e: SQLException) {
+                System.err.println("Error retrieving past medications: ${e.message}")
             }
         } ?: System.err.println("Failed to connect to database to retrieve past medications.")
 
-        return pastMedications
+        return pastMedications.toList()
     }
 
     /**
@@ -337,4 +355,5 @@ class DatabaseManager {
 
     // TODO: Add methods for updating records (e.g., editing notes, adding end date when archiving)
     // TODO: Implement proper date range storage and parsing for past_meds
+    // TODO: Implement delete methods for medications and surgeries
 }

@@ -9,12 +9,14 @@ data class PastMedication(
     val genericName: String,
     val brandName: String?,
     val dosage: String?,
+    val doseForm: String?,
     val instructions: String?,
     val reason: String?,
     val prescriber: String?,
     val historyNotes: String?,  // Notes about effectiveness, side effects, tolerability, etc.
     val reasonForStopping: String?,
-    val dateRanges: List<DateRange> = listOf()  // To track multiple periods of taking
+    val dateRanges: List<DateRange> = listOf(),  // To track multiple periods of taking
+    val manufacturer: String?
 ) {
     /**
      * Inner data class to represent a start and end date range.
