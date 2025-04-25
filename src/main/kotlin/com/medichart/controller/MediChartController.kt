@@ -7,10 +7,17 @@ import com.medichart.model.Surgery
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.fxml.FXML
+import javafx.fxml.FXMLLoader
+import javafx.scene.Scene
 import javafx.scene.control.TableColumn
 import javafx.scene.control.TableView
 import javafx.scene.control.cell.PropertyValueFactory   // Still use PropertyValueFactory for JavaFX
+import javafx.stage.Modality
+import javafx.stage.Stage
+import java.io.IOException
 import java.util.Comparator   // Needed for sorting
+import javafx.scene.layout.VBox
+import javafx.scene.layout.HBox
 
 /**
  * Controller class for the main MediChart GUI.
@@ -132,11 +139,50 @@ class MediChartController {
      */
     @FXML
     private fun handleAddMedication() {
-        println("Add Medication button clicked (Implementation needed)")
-        // TODO: Implement getting input from the user (e.g., show a from/dialog).
-        // TODO: Create a new Medication object from input.
-        // TODO: Call dbManager.addMedication(newMedObject).
-        // TODO: Call loadCurrentMedications() to refresh the table.
+        try {
+            // Load the FXML for the add medication dialog
+            val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/AddMedicationDialog.fxml"))
+            val dialogRoot = fxmlLoader.load<VBox>()    // Load the root element (VBox)
+
+            // Get the controller for the dialog
+            val dialogController = fxmlLoader.getController<AddMedicationController>()
+
+            // Create a new stage for the dialog window
+            val dialogStage = Stage()
+            dialogStage.title = "Add New Medication"
+            dialogStage.initModality(Modality.WINDOW_MODAL) // Make it modal (blocks input to parent window)
+            // Set the owner stage so the dialog is centered over the main window
+            dialogStage.initOwner(currentMedicationsTable.scene.window) // Use any element to get the scene and window
+            dialogStage.scene = Scene(dialogRoot)   // Set the scene
+
+            // Show the dialog and wait for it to be closed by the user
+            dialogStage.showAndWait()
+
+            // After the dialog is closed, check if the user clicked Save
+            if (dialogController.isSavedSuccessful) {
+                val newMedication = dialogController.medicationData // Get the Medication object from the dialog controller
+
+                // Ensure the medication data was actually captured
+                if (newMedication != null) {
+                    // Add the new medication to the database
+                    dbManager.addMedication(newMedication)
+
+                    // Refresh the current medications table to show the new entry
+                    loadCurrentMedications()
+
+                    println("Medication added successfully: ${newMedication.brandName ?: newMedication.genericName}")
+                } else {
+                    println("Dialog closed, but no medication data was captured.")
+                }
+            } else {
+                println("Add Medication dialog cancelled.")
+            }
+        } catch (e: IOException) {
+            // Handle potential errors during FXML loading
+            System.err.println("Error loading Add Medication dialog FXML: ${e.message}")
+            e.printStackTrace() // Print stack trace for debugging
+            // TODO: Show an error message to the user
+        }
     }
 
     /**
@@ -148,11 +194,13 @@ class MediChartController {
         val selectedMed = currentMedicationsTable.selectionModel.selectedItem   // Get selected item from table
         if (selectedMed != null) {
             println("Edit Medication button clicked for: ${selectedMed.brandName} (Implementation needed)")
-            // TODO: Implement showing an edit form/dialog pre-filled with selectedMed data.
-            // TODO: Get updated data from the user.
-            // TODO: Create/update a Medication object.
-            // TODO: Call dbManager.updateMedication(updateMedObject) - requires adding this method to DatabaseManager.
-            // TODO: Call loadCurrentMedications() to refresh the table
+            // TODO: Implement editing logic. Liekly involves:
+            // TODO: Loading AddMedicationDialog.fxml again.
+            // TODO: Getting the AddMedicationController instance.
+            // TODO: Showing the dialog
+            // TODO: If saved, getting the updated data from the controller.
+            // TODO: Calling dbManager.updateMedication(updateMedObject) method (needs to be added).
+            // TODO: Calling loadCurrentMedications() to refresh the table
         } else {
             println("No medication selected for editing.")
             // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
@@ -221,13 +269,7 @@ class MediChartController {
      * This method shows how programmatic sorting could be done.
      */
     @FXML
-    private fun handleSortByBrandName() {
-        println("Sort by Brand Name clicked (TableView handles by default)")
-        // Example of programmatic sorting on the ObservableList:
-        // val sortedList = currentMedicationsData.sortedWith(compareBy { it.brandName ?: "" }) // Handle potential nulls during sorting
-        // currentMedicationsTable.items = FXCollections.observableArrayList(sortedList)    // Update table items
-    }
-
+    private fun handleSortByBrandName() { println("Sort by Brand Name clicked (TableView handles by default)") }
     // TODO: Add handlers for sorting by Generic Name, Reason, Prescriber if separate buttons/menu items are desired
 
     // --- Reporting and Export Methods (Placeholder) ---
@@ -237,28 +279,22 @@ class MediChartController {
      * (Implementation needed - requires external libraries/JavaFX Printing API)
      */
     @FXML
-    private fun handlePrintCurrentMeds() {
-        println("Print Current Medications clicked (Implementation needed)")
-        // TODO: Implement printing logic (requires JavaFX Printing API or a library)
-    }
+    private fun handlePrintCurrentMeds() { println("Print Current Medications clicked (Implementation needed)") }
+    // TODO: Implement printing logic (requires JavaFX Printing API or a library)
 
     /**
      * Handles exporting the current medications table to PDF.
      * (Implementation needed - requires a PDF library like iText or PDFBox)
      */
     @FXML
-    private fun handleExportCurrentMedsPDF() {
-        println("Export Current Medications PDF clicked (Implementation needed)")
-        // TODO: Implement PDF export logic (requires a library like iText, Apache PDFBox)
-    }
+    private fun handleExportCurrentMedsPDF() { println("Export Current Medications PDF clicked (Implementation needed)") }
+    // TODO: Implement PDF export logic (requires a library like iText, Apache PDFBox)
 
     /**
      * Handles exporting the current medication table to Word.
      * (Implementation needed - requires a library like Apache POI)
      */
     @FXML
-    private fun handleExportCurrentMedsWord() {
-        println("Export Current Medications Word clicked (Implementation needed)")
-        // TODO: Implement Word export logic (requires a library like Apache POI)
-    }
+    private fun handleExportCurrentMedsWord() { println("Export Current Medications Word clicked (Implementation needed)") }
+    // TODO: Implement Word export logic (requires a library like Apache POI)
 }
