@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.DatePicker?>
 
 <VBox spacing="10.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/23" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.medichart.controller.AddMedicationController">
     <padding>
@@ -35,7 +36,7 @@
                 <TextField fx:id="reasonField" promptText="e.g., Headache" GridPane.columnIndex="1" GridPane.rowIndex="5" />
                 <TextField fx:id="prescriberField" promptText="e.g., Dr. Smith" GridPane.columnIndex="1" GridPane.rowIndex="6" />
                 <TextArea fx:id="notesArea" prefHeight="80.0" promptText="Any additional notes" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="7" />
-                <TextField fx:id="startDateField" promptText="e.g., 2024-01-05" GridPane.columnIndex="1" GridPane.rowIndex="8" />
+                <DatePicker fx:id="startDatePicker" promptText="e.g., 2024-01-05" GridPane.columnIndex="1" GridPane.rowIndex="8" />
                 <TextField fx:id="manufacturerField" promptText="e.g., Pfizer" GridPane.columnIndex="1" GridPane.rowIndex="9" />
             </children>
         </GridPane>

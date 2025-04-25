@@ -2,6 +2,8 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import java.util.List?>
+<?import com.medichart.model.PastMedication.DateRange?>
 
 <BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/23" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.medichart.controller.MediChartController">
     <center>
@@ -70,6 +72,7 @@
                                                 <TableColumn fx:id="pastReasonColumn" prefWidth="100.0" text="Reason Taken" />
                                                 <TableColumn fx:id="pastPrescriberColumn" prefWidth="100.0" text="Prescriber" />
                                                 <TableColumn fx:id="pastHistoryNotesColumn" prefWidth="150.0" text="History Notes" />
+                                                <TableColumn fx:id="pastDateRangesColumn" prefWidth="150.0" text="Date Range(s)" />
                                                 <TableColumn fx:id="pastReasonForStoppingColumn" prefWidth="100.0" text="Reason Stopped" />
                                                 <TableColumn fx:id="pastManufacturerColumn" prefWidth="150.0" text="Manufacturer" />
                                             </columns>

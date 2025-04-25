@@ -11,6 +11,8 @@ import javafx.scene.control.ButtonType
 import javafx.scene.Scene
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
+import javafx.scene.control.DatePicker
+import java.time.LocalDate
 
 /**
  * Controller for the Add/Edit Medication dialog.
@@ -26,7 +28,7 @@ class AddMedicationController {
     @FXML lateinit var reasonField: TextField
     @FXML lateinit var prescriberField: TextField
     @FXML lateinit var notesArea: TextArea
-    @FXML lateinit var startDateField: TextField    // For the start date
+    @FXML lateinit var startDatePicker: DatePicker    // For the start date
     @FXML lateinit var manufacturerField: TextField
 
     // Properties to hold the result of the dialog
@@ -46,7 +48,8 @@ class AddMedicationController {
     @FXML
     fun initialize() {
         // Initial setup if needed. For adding, fields start empty.
-        // For editing, this is where you would pre-fill fields based on the Medication object being edited.
+        // For adding, this is where you would pre-fill fields based on the Medication object being edited,
+        // including setting the value of the DatePicker: startDatePicker.value = medication.startDate
     }
 
     /**
@@ -112,7 +115,7 @@ class AddMedicationController {
         val reason = reasonField.text.trim().takeIf { it.isNotEmpty() }
         val prescriber = prescriberField.text.trim().takeIf { it.isNotEmpty() }
         val notes = notesArea.text.trim().takeIf { it.isNotEmpty() }
-        val startDate = startDateField.text.trim().takeIf { it.isNotEmpty() }
+        val startDate = startDatePicker.value
         val manufacturer = manufacturerField.text.trim().takeIf { it.isNotEmpty() }
 
         // Create a Medication object from the input
@@ -157,8 +160,7 @@ class AddMedicationController {
      */
     private fun closeDialog() {
         // Get the stage from any of the FXML elements
-        val stage = genericNameField.scene.window as Stage  // Cast to Stage
-        stage.close()   // Close the window
+        dialogStage?.close()   // Close the window
     }
 
     /**

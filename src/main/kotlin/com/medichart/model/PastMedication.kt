@@ -1,5 +1,7 @@
 package com.medichart.model
 
+import java.time.LocalDate
+
 /**
  * Represents a medication taken in the past.
  * Data class provides automatic equals(), hashCode(), toString(), and copy().
@@ -22,14 +24,14 @@ data class PastMedication(
      * Inner data class to represent a start and end date range.
      */
     data class DateRange(
-        val startDate: String?, // Uses String, could be LocalDate
-        val endDate: String?    // Using String, could be Local Date
+        val startDate: LocalDate?, // Uses String, could be LocalDate
+        val endDate: LocalDate?    // Using String, could be Local Date
     ) {
         /**
          * Provides a string representation for the date range.
          */
         override fun toString(): String {
-            return "${startDate ?: "Unknown Start"} to ${endDate ?: "Present"}"
+            return "${startDate?.toString() ?: "Unknown Start"} to ${endDate?.toString() ?: "Present"}"
         }
     }
 }

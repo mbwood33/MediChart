@@ -19,6 +19,7 @@ import java.io.IOException
 import java.util.Comparator   // Needed for sorting
 import javafx.scene.layout.VBox
 import javafx.scene.layout.HBox
+import java.time.LocalDate
 
 /**
  * Controller class for the main MediChart GUI.
@@ -36,7 +37,7 @@ class MediChartController {
     @FXML lateinit var currentReasonColumn: TableColumn<Medication, String>
     @FXML lateinit var currentPrescriberColumn: TableColumn<Medication, String>
     @FXML lateinit var currentNotesColumn: TableColumn<Medication, String>
-    @FXML lateinit var currentStartDateColumn: TableColumn<Medication, String>
+    @FXML lateinit var currentStartDateColumn: TableColumn<Medication, LocalDate>
     @FXML lateinit var currentManufacturerColumn: TableColumn<Medication, String>
 
     @FXML lateinit var pastMedicationsTable: TableView<PastMedication>
@@ -48,6 +49,7 @@ class MediChartController {
     @FXML lateinit var pastReasonColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastPrescriberColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastHistoryNotesColumn: TableColumn<PastMedication, String>
+    @FXML lateinit var pastDateRangesColumn: TableColumn<PastMedication, List<PastMedication.DateRange>>
     @FXML lateinit var pastReasonForStoppingColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastManufacturerColumn: TableColumn<PastMedication, String>
     // Note: Displaying List<DateRange> in a TableColumn directly requires custom cell factories
@@ -94,6 +96,7 @@ class MediChartController {
         pastReasonColumn.cellValueFactory = PropertyValueFactory("reason")
         pastPrescriberColumn.cellValueFactory = PropertyValueFactory("prescriber")
         pastHistoryNotesColumn.cellValueFactory = PropertyValueFactory("historyNotes")
+        pastDateRangesColumn.cellValueFactory = PropertyValueFactory("dateRanges")
         pastReasonForStoppingColumn.cellValueFactory = PropertyValueFactory("reasonForStopping")
         pastManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
         // TODO: Implement custom cell factory for pastDateRangeColumn if needed to display List<DateRange>
@@ -162,10 +165,10 @@ class MediChartController {
             dialogStage.initModality(Modality.WINDOW_MODAL) // Make it modal (blocks input to parent window)
             // Set the owner stage so the dialog is centered over the main window
             dialogStage.initOwner(currentMedicationsTable.scene.window) // Use any element to get the scene and window
-            dialogStage.scene = Scene(dialogRoot)   // Set the scene
-
-            // Show the dialog and wait for it to be closed by the user
-            dialogStage.showAndWait()
+            val dialogScene = Scene(dialogRoot) // Create the scene
+            dialogController.setDialogStage(dialogStage)    // Passes the Stage reference and sets up key event listeners
+            dialogStage.scene = dialogScene // Set the scene
+            dialogStage.showAndWait()   // Show the dialog and wait for it to be closed by the user
 
             // After the dialog is closed, check if the user clicked Save
             if (dialogController.isSavedSuccessful) {

@@ -1,5 +1,7 @@
 package com.medichart.model
 
+import java.time.LocalDate
+
 /**
  * Represents a medication currently being taken.
  * Data class provides automatic equals(), hashCode(), toString(), and copy().
@@ -16,7 +18,7 @@ data class Medication(
     val reason: String?,
     val prescriber: String?,
     val notes: String?,
-    val startDate: String?,  // Using String for initial simplicity
+    val startDate: LocalDate?,
     val manufacturer: String?
 ) {
     /**

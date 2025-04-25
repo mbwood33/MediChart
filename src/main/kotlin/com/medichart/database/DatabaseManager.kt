@@ -4,6 +4,8 @@ import com.medichart.model.Medication
 import com.medichart.model.PastMedication
 import com.medichart.model.Surgery
 import java.sql.*
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
 import java.util.ArrayList
 
 /**
@@ -13,6 +15,8 @@ import java.util.ArrayList
 class DatabaseManager {
 
     private val DATABASE_URL = "jdbc:sqlite:medichart.db"
+    // Define a formatter if you need a specific date format, but ISO is default for LocalDate.toString()
+    // private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE // YYYY-MM-DD
 
     /**
      * Establishes a connection to the SQLite database.
@@ -36,9 +40,12 @@ class DatabaseManager {
     /**
      * Creates the necessary tables in the database if they do not already exist.
      * Tables include 'current_meds', 'past_meds', and 'surgeries'.
+     * The date columns are stored as TEXT (ISO YYYY-MM-DD format).
+     * NOTE: This does NOT update schema for existing tables. Delete medichart.db to apply schema changes.
      */
     fun createTables() {
         // SQL statement for creating a new table
+        // start_date is TEXT, suitable for ISO LocalDate strings (YYYY-MM-DD)
         val createCurrentMedsTable = """
             CREATE TABLE IF NOT EXISTS current_meds (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +57,7 @@ class DatabaseManager {
                 reason TEXT,
                 prescriber TEXT,
                 notes TEXT, -- Current medication notes
-                start_date TEXT, -- Optional start date
+                start_date TEXT, -- Optional start date (TEXT for YYYY-MM-DD)
                 manufacturer TEXT
             );
         """.trimIndent() // Use trimIndent for multiline strings
@@ -93,8 +100,9 @@ class DatabaseManager {
 
     /**
      * Adds a new medication to the 'current_meds' table.
+     * Converts LocalDate start_date to String for storage.
      *
-     * @param med The Medication object to add.
+     * @param med The Medication object to add. Note: id is ignored for insertion as it's AUTOINCREMENT.
      */
     fun addMedication(med: Medication) {
         val sql = "INSERT INTO current_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, notes, start_date, manufacturer) VALUES(?,?,?,?,?,?,?,?,?,?)"
@@ -109,7 +117,8 @@ class DatabaseManager {
                 pstmt.setString(6, med.reason)
                 pstmt.setString(7, med.prescriber)
                 pstmt.setString(8, med.notes)
-                pstmt.setString(9, med.startDate)
+                // Convert LocalDate to String (YYYY-MM-DD) for database storage. Handles null automatically.
+                pstmt.setString(9, med.startDate?.toString())
                 pstmt.setString(10, med.manufacturer)
                 pstmt.executeUpdate()
                 // System.out.println("Medication added: ${med.brandName}") // Optional: for debugging
@@ -119,6 +128,7 @@ class DatabaseManager {
 
     /**
      * Retrieves all medications from the 'current_meds' table.
+     * Converts String start_date from database back to LocalDate
      *
      * @return A list of Medication objects.
      */
@@ -127,50 +137,64 @@ class DatabaseManager {
         val medications = mutableListOf<Medication>() // Use mutable list
 
         connect()?.use { conn ->
-            conn.createStatement().use { stmt ->
-                stmt.executeQuery(sql).use { rs -> // Use 'use' for ResultSet
-                    // loop through the result set
-                    while (rs.next()) {
-                        val med = Medication(
-                            rs.getInt("id"),
-                            rs.getString("generic_name"),
-                            rs.getString("brand_name"),
-                            rs.getString("dosage"),
-                            rs.getString("dose_form"),
-                            rs.getString("instructions"),
-                            rs.getString("reason"),
-                            rs.getString("prescriber"),
-                            rs.getString("notes"),
-                            rs.getString("start_date"),
-                            rs.getString("manufacturer")
-                        )
-                        medications.add(med)
+            try {
+                conn.createStatement().use { stmt ->
+                    stmt.executeQuery(sql).use { rs -> // Use 'use' for ResultSet
+                        // loop through the result set
+                        while (rs.next()) {
+                            // Retrieve date as String and convert to LocalDate
+                            val startDateString = rs.getString("start_date")
+                            val startDate = try {
+                                if (startDateString != null && startDateString.isNotBlank()) {  // Check if string is not null or blank
+                                    LocalDate.parse(startDateString)
+                                } else {
+                                    null    // Return null for null or blank strings
+                                }
+                            } catch (e: DateTimeParseException) {
+                                System.err.println("Error parsing start_date '$startDateString': ${e.message}")
+                                null    // Assign null in the catch block to ensure startDate is initialized
+                            }
+
+                            val med = Medication(
+                                rs.getInt("id"),
+                                rs.getString("generic_name"),
+                                rs.getString("brand_name"),
+                                rs.getString("dosage"),
+                                rs.getString("dose_form"),
+                                rs.getString("instructions"),
+                                rs.getString("reason"),
+                                rs.getString("prescriber"),
+                                rs.getString("notes"),
+                                startDate,  // Use the parsed LocalDate
+                                rs.getString("manufacturer")
+                            )
+                            medications.add(med)
+                        }
                     }
                 }
+            } catch(e: SQLException) {
+                System.err.println("Errpr retrieving current medications: ${e.message}")
             }
-        } ?: System.err.println("Failed to connect to database to retrieve current medications.")
+        }  ?: System.err.println("Failed to connect to database to retrieve current medications.")
 
-        return medications // Return immutable list
+        return medications.toList() // Return immutable list
     }
 
     /**
      * Archives a medication: moves it from 'current_meds' to 'past_meds'.
-     * Note: This basic implementation copies data and deletes. A more robust version
-     * would handle updating the `date_ranges` in past_meds if the medication
-     * already exists in history.
+     * Handles LocalDate start_date when creating placeholder date_ranges string.
      *
      * @param med The Medication object to archive.
      */
     fun archiveMedication(med: Medication) {
         // Basic Implementation: Insert into past_meds, then delete from current_meds
-
-        // Insert into past_meds
         val insertSql = "INSERT INTO past_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
 
         connect()?.use { conn ->
             try {
                 conn.autoCommit = false // Start transaction
 
+                // Prepare the INSERT statement
                 conn.prepareStatement(insertSql).use { pstmt ->
                     pstmt.setString(1, med.genericName)
                     pstmt.setString(2, med.brandName)
@@ -180,10 +204,11 @@ class DatabaseManager {
                     pstmt.setString(6, med.reason)
                     pstmt.setString(7, med.prescriber)
                     pstmt.setString(8, med.notes) // Copy current notes to history_notes initially
-                    pstmt.setString(9, "") // Reason for stopping - will need to be added by user later
-                    pstmt.setString(10, med.startDate?.let { "$it to Present" } ?: "Unknown Start to Present") // Simple date range representation
+                    // Set reason_for_stopping (placeholder - will be set later, e.g., in an Edit History dialog)
+                    pstmt.setString(9, "")
+                    // Convert LocalDate startDate to String (YYYY-MM-DD) for the placeholder date_ranges string
+                    pstmt.setString(10, med.startDate?.toString()?.let { "$it to Present" } ?: "Unknown Start to Present") // Simple date range representation
                     pstmt.setString(11, med.manufacturer)
-
 
                     pstmt.executeUpdate()
                     // System.out.println("Medication archived to history (insert step): ${med.brandName}") // Optional: for debugging
@@ -210,12 +235,12 @@ class DatabaseManager {
 
     /**
      * Unarchives a medication: moves it from 'past_meds' back to 'current_meds'.
+     * Sets the new start_date for the current med.
      *
      * @param pastMed The PastMedication object to unarchive.
      */
     fun unarchiveMedication(pastMed: PastMedication) {
         // Basic Implementation: Insert into current_meds, then delete from past_meds
-
         val insertSql = "INSERT INTO current_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, notes, start_date, manufacturer) VALUES(?,?,?,?,?,?,?,?,?,?)"
         val deleteSql = "DELETE FROM past_meds WHERE id = ?"
 
@@ -233,8 +258,8 @@ class DatabaseManager {
                     pstmt.setString(6, pastMed.reason)
                     pstmt.setString(7, pastMed.prescriber)
                     pstmt.setString(8, pastMed.historyNotes) // Copy history notes to current notes
-                    // When unarchiving, the start date is "now". Let's use a placeholder.
-                    pstmt.setString(9, "Re-started") // Placeholder for new start date
+                    // Set new start_date to today's date when unarchiving
+                    pstmt.setString(9, LocalDate.now().toString()) // Set new start_date to today as String
                     pstmt.setString(10, pastMed.manufacturer)
 
                     pstmt.executeUpdate()
@@ -312,12 +337,11 @@ class DatabaseManager {
         } ?: System.err.println("Failed to connect to database to delete past medication.")
     }
 
-
-
     /**
      * Retrieves all medications from the 'past_meds' table.
      * Note: The date_ranges column is currently stored as a simple string.
      * Parsing this into a List<PastMedication.DateRange> needs to be implemented.
+     * The individual DateRange start/end dates are now LocalDate?.
      *
      * @return A list of PastMedication objects.
      */
@@ -331,7 +355,8 @@ class DatabaseManager {
                     stmt.executeQuery(sql).use { rs ->
                         // loop through the result set
                         while (rs.next()) {
-                            // TODO: Implement parsing of date_ranges string into List<PastMedication.DateRange>
+                            // TODO: Implement robust parsing of date_ranges string into List<PastMedication.DateRange> using LocalDate.parse()
+                            // For now, creating empty list of date ranges
                             val dateRanges = listOf<PastMedication.DateRange>() // Placeholder for parsed list
 
                             val pastMed = PastMedication(
@@ -345,7 +370,7 @@ class DatabaseManager {
                                 rs.getString("prescriber"),
                                 rs.getString("history_notes"),
                                 rs.getString("reason_for_stopping"),
-                                dateRanges, // Use the parsed list
+                                dateRanges, // Use the parsed list (currently empty, will contain LocalDate in future)
                                 rs.getString("manufacturer")
                             )
                             pastMedications.add(pastMed)
@@ -362,24 +387,30 @@ class DatabaseManager {
 
     /**
      * Adds a new surgery to the 'surgeries' table.
+     * Converts LocalDate date to String for storage.
      * @param surgery The Surgery object to add.
      */
     fun addSurgery(surgery: Surgery) {
         val sql = "INSERT INTO surgeries(name, date, surgeon) VALUES(?,?,?)"
 
         connect()?.use { conn ->
-            conn.prepareStatement(sql).use { pstmt ->
+            try {
+                conn.prepareStatement(sql).use { pstmt ->
                 pstmt.setString(1, surgery.name)
-                pstmt.setString(2, surgery.date)
+                pstmt.setString(2, surgery.date?.toString())
                 pstmt.setString(3, surgery.surgeon)
                 pstmt.executeUpdate()
                 // System.out.println("Surgery added: ${surgery.name}") // Optional: for debugging
+                }
+            } catch (e: SQLException) {
+                System.err.println("Error adding surgery: ${e.message}")
             }
         } ?: System.err.println("Failed to connect to database to add surgery.")
     }
 
     /**
      * Retrieves all surgeries from the 'surgeries' table.
+     * Converts String date from database back to LocalDate.
      * @return A list of Surgery objects.
      */
     fun getAllSurgeries(): List<Surgery> {
@@ -387,19 +418,36 @@ class DatabaseManager {
         val surgeries = mutableListOf<Surgery>()
 
         connect()?.use { conn ->
-            conn.createStatement().use { stmt ->
-                stmt.executeQuery(sql).use { rs ->
-                    // loop through the result set
-                    while (rs.next()) {
-                        val surgery = Surgery(
-                            rs.getInt("id"),
-                            rs.getString("name"),
-                            rs.getString("date"),
-                            rs.getString("surgeon")
-                        )
-                        surgeries.add(surgery)
+            try {
+                conn.createStatement().use { stmt ->
+                    stmt.executeQuery(sql).use { rs ->
+                        // loop through the result set
+                        while (rs.next()) {
+                            val dateString = rs.getString("date")
+                            // Convert date string to LocalDate?, handling null and parsing errors
+                            val surgeryDate = try {
+                                if (dateString != null && dateString.isNotBlank()) {
+                                    LocalDate.parse(dateString)
+                                } else {
+                                    null
+                                }
+                            } catch (e: DateTimeParseException) {
+                                System.err.println("Error parsing surgery date '$dateString': ${e.message}")
+                                null // Assign null in the catch block
+                            }
+
+                            val surgery = Surgery(
+                                rs.getInt("id"),
+                                rs.getString("name"),
+                                surgeryDate, // <-- PASS the parsed LocalDate? here
+                                rs.getString("surgeon")
+                            )
+                            surgeries.add(surgery)
+                        }
                     }
                 }
+            } catch (e: SQLException) {
+                System.err.println("Error retrieving surgeries: ${e.message}")
             }
         } ?: System.err.println("Failed to connect to database to retrieve surgeries.")
 
