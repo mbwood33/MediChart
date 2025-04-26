@@ -147,7 +147,8 @@ class MediChartController {
 
     /**
      * Handles the action of adding a new medication.
-     * (Implementation needed - typically opens a dialog for input)
+     * Opens a dialog for the user to input medication details.
+     * Selects the newly added item after refresh.
      */
     @FXML
     private fun handleAddMedication() {
@@ -166,7 +167,9 @@ class MediChartController {
             // Set the owner stage so the dialog is centered over the main window
             dialogStage.initOwner(currentMedicationsTable.scene.window) // Use any element to get the scene and window
             val dialogScene = Scene(dialogRoot) // Create the scene
+
             dialogController.setDialogStage(dialogStage)    // Passes the Stage reference and sets up key event listeners
+
             dialogStage.scene = dialogScene // Set the scene
             dialogStage.showAndWait()   // Show the dialog and wait for it to be closed by the user
 
@@ -176,11 +179,13 @@ class MediChartController {
 
                 // Ensure the medication data was actually captured
                 if (newMedication != null) {
-                    // Add the new medication to the database
-                    dbManager.addMedication(newMedication)
+                    dbManager.addMedication(newMedication)  // Add the new medication to the database
+                    loadCurrentMedications()    // Refresh the current medications table to show the new entry
 
-                    // Refresh the current medications table to show the new entry
-                    loadCurrentMedications()
+                    // Select the last item in the table (the newly added one)
+                    if (currentMedicationsTable.items.isNotEmpty()) {
+                        currentMedicationsTable.selectionModel.selectLast()
+                    }
 
                     println("Medication added successfully: ${newMedication.brandName ?: newMedication.genericName}")
                 } else {
@@ -222,42 +227,70 @@ class MediChartController {
     /**
      * Handles the action of archiving the selected current medication.
      * Moves the selected medication from the current list to the history list.
+     * Selects the item at the same index (or the last) after refreshes in the current table.
      */
     @FXML
     private fun handleArchiveMedication() {
+        println("Archive Medication button clicked.")
         val selectedMed = currentMedicationsTable.selectionModel.selectedItem
         if (selectedMed != null) {
-            println("Archive Medication button clicked for: ${selectedMed.brandName}")
-            dbManager.archiveMedication(selectedMed)    // Call database method to move the record
-            // After archiving, reload both tables to reflect changes
-            loadCurrentMedications()
-            loadPastMedications()
+            val selectedIndex = currentMedicationsTable.selectionModel.selectedIndex // Get index BEFORE refresh
+
+            dbManager.archiveMedication(selectedMed)
+            loadCurrentMedications() // Refresh current table
+            loadPastMedications() // Refresh history table
+            println("Medication archived: ${selectedMed.brandName ?: selectedMed.genericName}")
+
+            // Select the item at the same index in the updated current list, or the last item if index is out of bounds.
+            // This effectively selects the item that moved into the archived item's old position.
+            if (currentMedicationsTable.items.isNotEmpty()) {
+                val newIndexToSelect = if (selectedIndex < currentMedicationsTable.items.size) selectedIndex else currentMedicationsTable.items.size - 1
+                currentMedicationsTable.selectionModel.select(newIndexToSelect)
+            } else {
+                // If the table is now empty, clear selection
+                currentMedicationsTable.selectionModel.clearSelection()
+            }
+            // TODO: Also consider selecting the newly archived item in the past medications table?
+            // If so, you'd need to find it in the pastMedicationsTable.items after loadPastMedications()
+            // For now, just handling selection in the original table (current).
         } else {
+            // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
             println("No medication selected for archiving.")
-            // TODO: Show a warning to the user.
         }
     }
 
     /**
      * Handles the action of deleting the selected current medication.
      * Gets the selected item, confirms deletion, calls database delete, and refreshes table.
+     * Selects the item at the same index (or the last) after refresh.
+     * TODO: Add a confirmation dialog.
      */
     @FXML
     private fun handleDeleteCurrentMedication() {
+        println("Delete Medication button clicked.")
         val selectedMed = currentMedicationsTable.selectionModel.selectedItem
 
         if (selectedMed != null) {
+            val selectedIndex = currentMedicationsTable.selectionModel.selectedIndex    // Get index BEFORE refresh
+
             // TODO: Add a confirmation dialog here before actually deleting!
             // e.g., Alert(AlertType.CONFIRMATION, "Are you sure you want to delete {$selectedMed.brandName ?: selectedMed.genericName}?")
             // If user confirms:
 
             println("Delete Medication button called for: ${selectedMed.brandName ?: selectedMed.genericName}")
 
-            // Call the database method to delete the record
-            dbManager.deleteCurrentMedication(selectedMed.id)
+            dbManager.deleteCurrentMedication(selectedMed.id)   // Call the database method to delete the record
+            loadCurrentMedications()    // Refresh the current medications table to show the change
 
-            // Refresh the current medications table to show the change
-            loadCurrentMedications()
+            // Select the item at the same index in the updated list, or the last item if index is out of bounds.
+            // This selects the item that moved into the deleted item's old position.
+            if (currentMedicationsTable.items.isNotEmpty()) {
+                val newIndexToSelect = if (selectedIndex < currentMedicationsTable.items.size) selectedIndex else currentMedicationsTable.items.size - 1
+                currentMedicationsTable.selectionModel.select(newIndexToSelect)
+            } else {
+                // If the table is now empty, clear selection
+                currentMedicationsTable.selectionModel.clearSelection()
+            }
 
             println("Current medication deleted.")
         } else {
@@ -267,49 +300,72 @@ class MediChartController {
     }
 
     /**
-     * Handles the action of deleting the selected past medication.
-     * Gets the selected item, confirms deletion, calls databse delete, and refreshes table.
+     * Handles the action of unarchiving the selected past medication.
+     * Moves the selected medication from past_meds back to current_meds.
+     * Selects the newly added item in the current table.
      */
     @FXML
-    private fun handleDeletePastMedication() {
+    private fun handleUnarchiveMedication() {
+        println("Unarchive Medication button clicked.")
         val selectedPastMed = pastMedicationsTable.selectionModel.selectedItem
-
         if (selectedPastMed != null) {
-            // TODO: Add a confirmation dialog here before actually deleting past med!
-            // e.g., Alert(AlertType.CONFIRMATION, "Are you sure you want to delete history for ${selectedPastMed.brandName ?: selectedPastMed.genericName}?")
-            // If user confirms:
+            val selectedIndex = pastMedicationsTable.selectionModel.selectedIndex   // Get index BEFORE refresh
 
-            println("Delete Past Medication button clicked for: ${selectedPastMed.brandName ?: selectedPastMed.genericName}")
+            dbManager.unarchiveMedication(selectedPastMed)  // Call database method to move the record
+            loadCurrentMedications()    // Refresh history table
+            loadPastMedications()   // Refresh current table
+            println("Medication unarchived: ${selectedPastMed.brandName ?: selectedPastMed.genericName}")
 
-            // Call the database method to delete the record
-            dbManager.deletePastMedication(selectedPastMed.id)
-
-            // Refresh the past medications table to show the change
-            loadPastMedications()
-
-            println("Past medication deleted.")
+            // Select the item at the same index in the updated past list, or the last item if index is out of bounds.
+            // This keeps focus in the past table near where the item was removed.
+            if (pastMedicationsTable.items.isNotEmpty()) {
+                val newIndexToSelect = if (selectedIndex < pastMedicationsTable.items.size) selectedIndex else pastMedicationsTable.items.size - 1
+                pastMedicationsTable.selectionModel.select(newIndexToSelect)
+            } else {
+                // If the past table is now empty after unarchiving the last item, clear selection
+                pastMedicationsTable.selectionModel.clearSelection()
+            }
         } else {
-            println("No past medication selected for deletion.")
-            // TODO: Show a warning or information dialog to the user
+            // TODO: Show a warning to the user
+            println("No past medication selected for unarchiving.")
         }
     }
 
     /**
-     * Handles the action of unarchiving the selected past medication.
-     * Moves the selected medication from the history list back to the current list.
+     * Handles the action of deleting the selected past medication.
+     * Gets the selected item, confirms deletion, calls database delete, and refreshes table.
+     * Selects the item at the same index (or the last) after refresh in the past table.
+     * TODO: Add a confirmation dialog.
      */
     @FXML
-    private fun handleUnarchiveMedication() {
+    private fun handleDeletePastMedication() {
+        println("Delete Past Medication button clicked.")
         val selectedPastMed = pastMedicationsTable.selectionModel.selectedItem
+
         if (selectedPastMed != null) {
-            println("Unarchive Medication button clicked for: ${selectedPastMed.brandName}")
-            dbManager.unarchiveMedication(selectedPastMed)  // Call database method to move the record
-            // After unarchiving, reload both tables to reflect changes
-            loadCurrentMedications()
-            loadPastMedications()
+            val selectedIndex = pastMedicationsTable.selectionModel.selectedIndex   // Get index BEFORE refresh (past table)
+
+            // TODO: Add a confirmation dialog here before actually deleting past med!
+            // If user confirms:
+
+            println("Delete Past Medication butten clicked for: {${selectedPastMed.brandName ?: selectedPastMed.genericName}")
+
+            dbManager.unarchiveMedication(selectedPastMed)
+            loadPastMedications()   // Refresh history table
+
+            // Select the item at the same index in the updated list, or the last item if index is out of bounds.
+            // This selects the item that moved into the deleted item's old position.
+            if (pastMedicationsTable.items.isNotEmpty()) {
+                val newIndexToSelect = if (selectedIndex < pastMedicationsTable.items.size) selectedIndex else pastMedicationsTable.items.size - 1
+                pastMedicationsTable.selectionModel.select(newIndexToSelect)
+            } else {
+                // If the table is now empty, clear selection
+                pastMedicationsTable.selectionModel.clearSelection()
+            }
+            println("Past medication deleted.")
         } else {
-            println("No past medication selected for unarchiving.")
-            // TODO: Show a warning to the user
+            println("No past medication selected for deletion.")
+            // TODO: Show a warning or information dialog to the user
         }
     }
 
