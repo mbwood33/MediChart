@@ -24,7 +24,7 @@ class AddMedicationController {
     @FXML lateinit var brandNameField: TextField
     @FXML lateinit var dosageField: TextField
     @FXML lateinit var doseFormField: TextField
-    @FXML lateinit var instructionsArea: TextArea
+    @FXML lateinit var instructionsField: TextField
     @FXML lateinit var reasonField: TextField
     @FXML lateinit var prescriberField: TextField
     @FXML lateinit var notesArea: TextArea
@@ -111,7 +111,7 @@ class AddMedicationController {
         val brandName = brandNameField.text.trim().takeIf { it.isNotEmpty() }   // Use takeIf for optional fields
         val dosage = dosageField.text.trim().takeIf { it.isNotEmpty() }
         val doseForm = doseFormField.text.trim().takeIf {it.isNotEmpty() }
-        val instructions = instructionsArea.text.trim().takeIf { it.isNotEmpty() }
+        val instructions = instructionsField.text.trim().takeIf { it.isNotEmpty() }
         val reason = reasonField.text.trim().takeIf { it.isNotEmpty() }
         val prescriber = prescriberField.text.trim().takeIf { it.isNotEmpty() }
         val notes = notesArea.text.trim().takeIf { it.isNotEmpty() }

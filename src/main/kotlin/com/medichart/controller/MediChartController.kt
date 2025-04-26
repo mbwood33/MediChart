@@ -4,33 +4,43 @@ import com.medichart.database.DatabaseManager
 import com.medichart.model.Medication
 import com.medichart.model.PastMedication
 import com.medichart.model.Surgery
-import javafx.beans.property.Property
-import javafx.collections.FXCollections
-import javafx.collections.ObservableList
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
-import javafx.scene.control.TableColumn
 import javafx.scene.control.TableView
+import javafx.scene.control.TableColumn
 import javafx.scene.control.cell.PropertyValueFactory   // Still use PropertyValueFactory for JavaFX
+import javafx.scene.layout.VBox
+import javafx.scene.layout.HBox
 import javafx.stage.Modality
 import javafx.stage.Stage
 import java.io.IOException
-import java.util.Comparator   // Needed for sorting
-import javafx.scene.layout.VBox
-import javafx.scene.layout.HBox
 import java.time.LocalDate
+import javafx.scene.control.Alert
+import javafx.scene.control.Alert.AlertType
+import javafx.util.Callback
+import javafx.scene.control.cell.TextFieldTableCell
+import javafx.util.converter.DefaultStringConverter
+import javafx.scene.control.TableColumn.CellEditEvent
+import javafx.collections.ObservableList
+
+import javafx.collections.FXCollections
+import javafx.event.EventHandler
+import java.util.Comparator   // Needed for sorting
+import kotlin.random.Random
+
 
 /**
  * Controller class for the main MediChart GUI.
  * Handles interactions between the GUI elements and the database.
  */
 class MediChartController {
-    // FXML elements injected by the FXMLLoader
-    // Use 'lateinit var' for FXML injected fields that will be initialized by FXMLLoader
+    private lateinit var dbManager: DatabaseManager
+
+    // FXML elements for the Current Medications Table
     @FXML lateinit var currentMedicationsTable: TableView<Medication>
-    @FXML lateinit var currentBrandNameColumn: TableColumn<Medication, String>
     @FXML lateinit var currentGenericNameColumn: TableColumn<Medication, String>
+    @FXML lateinit var currentBrandNameColumn: TableColumn<Medication, String>
     @FXML lateinit var currentDosageColumn: TableColumn<Medication, String>
     @FXML lateinit var currentDoseFormColumn: TableColumn<Medication, String>
     @FXML lateinit var currentInstructionsColumn: TableColumn<Medication, String>
@@ -40,27 +50,26 @@ class MediChartController {
     @FXML lateinit var currentStartDateColumn: TableColumn<Medication, LocalDate>
     @FXML lateinit var currentManufacturerColumn: TableColumn<Medication, String>
 
+    // FXML elements for the Medications History Table
     @FXML lateinit var pastMedicationsTable: TableView<PastMedication>
-    @FXML lateinit var pastBrandNameColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastGenericNameColumn: TableColumn<PastMedication, String>
+    @FXML lateinit var pastBrandNameColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastDosageColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastDoseFormColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastInstructionsColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastReasonColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastPrescriberColumn: TableColumn<PastMedication, String>
     @FXML lateinit var pastHistoryNotesColumn: TableColumn<PastMedication, String>
-    @FXML lateinit var pastDateRangesColumn: TableColumn<PastMedication, List<PastMedication.DateRange>>
     @FXML lateinit var pastReasonForStoppingColumn: TableColumn<PastMedication, String>
+    @FXML lateinit var pastDateRangesColumn: TableColumn<PastMedication, List<PastMedication.DateRange>>
     @FXML lateinit var pastManufacturerColumn: TableColumn<PastMedication, String>
-    // Note: Displaying List<DateRange> in a TableColumn directly requires custom cell factories
-    // @FXML lateinit var pastDateRangesColumn: TableColumn<PastMedication, List<PastMedication.DateRange>>
 
+    // FXML elements for the Surgeries Table
     @FXML lateinit var surgeriesTable: TableView<Surgery>
     @FXML lateinit var surgeryNameColumn: TableColumn<Surgery, String>
     @FXML lateinit var surgeryDateColumn: TableColumn<Surgery, String>
     @FXML lateinit var surgerySurgeonColumn: TableColumn<Surgery, String>
 
-    private lateinit var dbManager: DatabaseManager // lateinit because it's initialized in initialize()
     private lateinit var currentMedicationsData: ObservableList<Medication>
     private lateinit var pastMedicationsData: ObservableList<PastMedication>
     private lateinit var surgeriesData: ObservableList<Surgery>
@@ -73,11 +82,12 @@ class MediChartController {
     @FXML
     fun initialize() {
         dbManager = DatabaseManager()   // Initialize dbManager
+        dbManager.createTables()    // Ensure tables exist on startup
 
         // Set up Current Medications Table Columns
         // PropertyValueFactory still works with kotlin data class properties by looking for getters (which val/var provide)
-        currentBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
         currentGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
+        currentBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
         currentDosageColumn.cellValueFactory = PropertyValueFactory("dosage")
         currentDoseFormColumn.cellValueFactory = PropertyValueFactory("doseForm")
         currentInstructionsColumn.cellValueFactory = PropertyValueFactory("instructions")
@@ -88,24 +98,73 @@ class MediChartController {
         currentManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
 
         // Set up Past Medications Table Columns
-        pastBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
         pastGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
+        pastBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
         pastDosageColumn.cellValueFactory = PropertyValueFactory("dosage")
         pastDoseFormColumn.cellValueFactory = PropertyValueFactory("doseForm")
         pastInstructionsColumn.cellValueFactory = PropertyValueFactory("instructions")
         pastReasonColumn.cellValueFactory = PropertyValueFactory("reason")
         pastPrescriberColumn.cellValueFactory = PropertyValueFactory("prescriber")
         pastHistoryNotesColumn.cellValueFactory = PropertyValueFactory("historyNotes")
-        pastDateRangesColumn.cellValueFactory = PropertyValueFactory("dateRanges")
         pastReasonForStoppingColumn.cellValueFactory = PropertyValueFactory("reasonForStopping")
+        pastDateRangesColumn.cellValueFactory = PropertyValueFactory("dateRanges")
         pastManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
-        // TODO: Implement custom cell factory for pastDateRangeColumn if needed to display List<DateRange>
-        // pastDateRangesColumn..cellValueFactory = PropertyValueFactory("dateRanges")  // This won't work directly for List
+
+        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Past Meds column (History Notes etc.)
+        // TODO: (Futre) Implement custom cell factory for pastDateRangesColumn to format the List<DateRange> nicely
 
         // Set up Surgeries Table Columns
         surgeryNameColumn.cellValueFactory = PropertyValueFactory("name")
         surgeryDateColumn.cellValueFactory = PropertyValueFactory("date")
         surgerySurgeonColumn.cellValueFactory = PropertyValueFactory("surgeon")
+
+        // --- ENABLE INLINE EDITING FOR CURRENT MEDICATIONS TABLE ---
+        currentMedicationsTable.isEditable = true   // Enable inline editing for Current Medications Table
+
+        // Set up inline editing using the setupStringInLineEditing extension function
+        // This configures the cell factory and the onEditCommit handler for each column.
+        // The lambda defines how to create a new Medication object using copy().
+        // Database update is left as a TODO for a separate "Save" feature.
+
+        // Generic Name
+        currentGenericNameColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+            item.copy(genericName = newValue)   // Define how to update genericName
+        }
+
+        // Brand Name
+        currentBrandNameColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+            item.copy(brandName = newValue.takeIf { it.isNotEmpty () })   // Define how to update brandName
+        }
+
+        // Dosage
+        currentDosageColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+            item.copy(dosage = newValue.takeIf { it.isNotEmpty() })   // Define how to update dosage
+        }
+
+        // Dosage From
+        currentDoseFormColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+            item.copy(doseForm = newValue.takeIf { it.isNotEmpty() })   // Define how to update doseForm
+        }
+
+        // Instructions
+        currentInstructionsColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+            item.copy(instructions = newValue.takeIf { it.isNotEmpty() })   // Define how to update instructions
+        }
+
+        // Manufacturer
+        currentManufacturerColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+            item.copy(manufacturer = newValue.takeIf { it.isNotEmpty() })   // Define how to update manufacturer
+        }
+
+        // Reason
+        currentReasonColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+            item.copy(reason = newValue.takeIf { it.isNotEmpty() })   // Define how to update reason
+        }
+
+        // Prescriber
+        currentPrescriberColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+            item.copy(prescriber = newValue.takeIf { it.isNotEmpty() })   // Define how to update prescriber
+        }
 
         // Load data into tables
         loadCurrentMedications()
@@ -149,6 +208,7 @@ class MediChartController {
      * Handles the action of adding a new medication.
      * Opens a dialog for the user to input medication details.
      * Selects the newly added item after refresh.
+     * EDITED: Added dialog loading/showing logic, getting data from dialog controller, and selection logic.
      */
     @FXML
     private fun handleAddMedication() {
@@ -204,23 +264,19 @@ class MediChartController {
 
     /**
      * Handles the action of editing the selected current medication.
-     * (Implementation needed - typically opens a dialog with existing data)
+     * TODO: Implement this method.
+     * EXISTING: Placeholder method.
      */
     @FXML
     private fun handleEditMedication() {
+        println("Edit Medications button clicked.")
         val selectedMed = currentMedicationsTable.selectionModel.selectedItem   // Get selected item from table
         if (selectedMed != null) {
-            println("Edit Medication button clicked for: ${selectedMed.brandName} (Implementation needed)")
-            // TODO: Implement editing logic. Liekly involves:
-            // TODO: Loading AddMedicationDialog.fxml again.
-            // TODO: Getting the AddMedicationController instance.
-            // TODO: Showing the dialog
-            // TODO: If saved, getting the updated data from the controller.
-            // TODO: Calling dbManager.updateMedication(updateMedObject) method (needs to be added).
-            // TODO: Calling loadCurrentMedications() to refresh the table
+            println("Edit: ${selectedMed.brandName ?: selectedMed.genericName}")
+            // TODO: Open edit dialog, populate with selectedMed data
         } else {
-            println("No medication selected for editing.")
             // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
+            println("No medication selected for editing.")
         }
     }
 
@@ -228,6 +284,7 @@ class MediChartController {
      * Handles the action of archiving the selected current medication.
      * Moves the selected medication from the current list to the history list.
      * Selects the item at the same index (or the last) after refreshes in the current table.
+     * EDITED: Added selection logic and call to loadPastMedications
      */
     @FXML
     private fun handleArchiveMedication() {
@@ -239,10 +296,10 @@ class MediChartController {
             dbManager.archiveMedication(selectedMed)
             loadCurrentMedications() // Refresh current table
             loadPastMedications() // Refresh history table
+
             println("Medication archived: ${selectedMed.brandName ?: selectedMed.genericName}")
 
             // Select the item at the same index in the updated current list, or the last item if index is out of bounds.
-            // This effectively selects the item that moved into the archived item's old position.
             if (currentMedicationsTable.items.isNotEmpty()) {
                 val newIndexToSelect = if (selectedIndex < currentMedicationsTable.items.size) selectedIndex else currentMedicationsTable.items.size - 1
                 currentMedicationsTable.selectionModel.select(newIndexToSelect)
@@ -251,8 +308,6 @@ class MediChartController {
                 currentMedicationsTable.selectionModel.clearSelection()
             }
             // TODO: Also consider selecting the newly archived item in the past medications table?
-            // If so, you'd need to find it in the pastMedicationsTable.items after loadPastMedications()
-            // For now, just handling selection in the original table (current).
         } else {
             // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
             println("No medication selected for archiving.")
@@ -263,6 +318,7 @@ class MediChartController {
      * Handles the action of deleting the selected current medication.
      * Gets the selected item, confirms deletion, calls database delete, and refreshes table.
      * Selects the item at the same index (or the last) after refresh.
+     * EDITED: Added deletion logic and selection logic
      * TODO: Add a confirmation dialog.
      */
     @FXML
@@ -283,13 +339,11 @@ class MediChartController {
             loadCurrentMedications()    // Refresh the current medications table to show the change
 
             // Select the item at the same index in the updated list, or the last item if index is out of bounds.
-            // This selects the item that moved into the deleted item's old position.
             if (currentMedicationsTable.items.isNotEmpty()) {
                 val newIndexToSelect = if (selectedIndex < currentMedicationsTable.items.size) selectedIndex else currentMedicationsTable.items.size - 1
                 currentMedicationsTable.selectionModel.select(newIndexToSelect)
             } else {
-                // If the table is now empty, clear selection
-                currentMedicationsTable.selectionModel.clearSelection()
+                currentMedicationsTable.selectionModel.clearSelection() // Clear selection if table is empty
             }
 
             println("Current medication deleted.")
@@ -302,7 +356,9 @@ class MediChartController {
     /**
      * Handles the action of unarchiving the selected past medication.
      * Moves the selected medication from past_meds back to current_meds.
-     * Selects the newly added item in the current table.
+     * Selects the item at the original index (or the last) in the *past* table after refresh,
+     * keeping focus on the history list.
+     * EDITED: Added unarchive logic and selection logic for the past table.
      */
     @FXML
     private fun handleUnarchiveMedication() {
@@ -317,7 +373,6 @@ class MediChartController {
             println("Medication unarchived: ${selectedPastMed.brandName ?: selectedPastMed.genericName}")
 
             // Select the item at the same index in the updated past list, or the last item if index is out of bounds.
-            // This keeps focus in the past table near where the item was removed.
             if (pastMedicationsTable.items.isNotEmpty()) {
                 val newIndexToSelect = if (selectedIndex < pastMedicationsTable.items.size) selectedIndex else pastMedicationsTable.items.size - 1
                 pastMedicationsTable.selectionModel.select(newIndexToSelect)
@@ -335,6 +390,7 @@ class MediChartController {
      * Handles the action of deleting the selected past medication.
      * Gets the selected item, confirms deletion, calls database delete, and refreshes table.
      * Selects the item at the same index (or the last) after refresh in the past table.
+     * EDITED: Added deletion logic and selection logic for the past table.
      * TODO: Add a confirmation dialog.
      */
     @FXML
@@ -354,7 +410,6 @@ class MediChartController {
             loadPastMedications()   // Refresh history table
 
             // Select the item at the same index in the updated list, or the last item if index is out of bounds.
-            // This selects the item that moved into the deleted item's old position.
             if (pastMedicationsTable.items.isNotEmpty()) {
                 val newIndexToSelect = if (selectedIndex < pastMedicationsTable.items.size) selectedIndex else pastMedicationsTable.items.size - 1
                 pastMedicationsTable.selectionModel.select(newIndexToSelect)
@@ -421,4 +476,42 @@ class MediChartController {
     @FXML
     private fun handleExportCurrentMedsWord() { println("Export Current Medications Word clicked (Implementation needed)") }
     // TODO: Implement Word export logic (requires a library like Apache POI)
+}
+
+// *********************************************************************************************************************
+
+/**
+ * Sets up a TableColumn<Medication, String> for inline editing using TextFieldTableCell.
+ * Applies a DefaultStringConverter and handles updating the Medication object in the TableView's items list.
+ * This function is an extension on TableColumn<Medication, String>.
+ *
+ * @param tableView The TableView that this column belongs to. Needed to access and update the list items.
+ * @param updateItem The lambda that defines how to create a new Medication object with the updated value.
+ * It takes the original Medication object (oldItem: Medication) and the new String value (newValue: String?)
+ * as parameters and should return the updated Medication object.
+ */
+fun TableColumn<Medication, String>.setupStringInLineEditing(
+    tableView: TableView<Medication>,   // Need access to the TableView to update its items
+    updateItem: (oldItem: Medication, newValue: String) -> Medication  // Lambda for creating the updated item
+) {
+    // Set the cell factory to use TextFieldTableCell for String columns
+    this.cellFactory = TextFieldTableCell.forTableColumn(DefaultStringConverter())  // 'this' refers to the TableColumn
+
+    // Set the onEditCommit handler
+    this.onEditCommit = EventHandler { event: CellEditEvent<Medication, String> ->   // 'this' refers to the TableColumn
+        val item = event.rowValue   // The original Medication object being edited
+        val newValue = event.newValue   // The new String value from the editor
+
+        // Find the index of the item in the table's observable list
+        // Using indexOf requires the data class to have correct equals() and hashCode() which Kotlin data classes provide.
+        val itemIndex = tableView.items.indexOf(item)   // Use the provided TableView
+
+        if (itemIndex >= 0) {
+            // Use the provided lambda to create the updated item
+            val updatedItem = updateItem(item, newValue)
+            // Replace the old item with the new one in the table's ObservableList
+            tableView.items[itemIndex] = updatedItem
+            // TODO: Implement database update for this specific item here later (add updateMedication method)
+        }
+    }
 }

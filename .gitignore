@@ -30,3 +30,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Ignore the SQLite database file
+medichart.db
