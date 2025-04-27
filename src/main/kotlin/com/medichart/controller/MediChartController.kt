@@ -7,6 +7,7 @@ import com.medichart.model.Surgery
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
+import javafx.scene.control.TableCell
 import javafx.scene.control.TableView
 import javafx.scene.control.TableColumn
 import javafx.scene.control.cell.PropertyValueFactory   // Still use PropertyValueFactory for JavaFX
@@ -23,7 +24,7 @@ import javafx.scene.control.cell.TextFieldTableCell
 import javafx.util.converter.DefaultStringConverter
 import javafx.scene.control.TableColumn.CellEditEvent
 import javafx.collections.ObservableList
-
+import javafx.scene.input.MouseEvent
 import javafx.collections.FXCollections
 import javafx.event.EventHandler
 import java.util.Comparator   // Needed for sorting
@@ -97,6 +98,8 @@ class MediChartController {
         currentStartDateColumn.cellValueFactory = PropertyValueFactory("startDate")
         currentManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
 
+        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Notes columns.
+
         // Set up Past Medications Table Columns
         pastGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
         pastBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
@@ -110,8 +113,8 @@ class MediChartController {
         pastDateRangesColumn.cellValueFactory = PropertyValueFactory("dateRanges")
         pastManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
 
-        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Past Meds column (History Notes etc.)
-        // TODO: (Futre) Implement custom cell factory for pastDateRangesColumn to format the List<DateRange> nicely
+        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Past Meds columns
+        // TODO: (Future) Implement custom cell factory for pastDateRangesColumn to format the List<DateRange> nicely
 
         // Set up Surgeries Table Columns
         surgeryNameColumn.cellValueFactory = PropertyValueFactory("name")
@@ -120,6 +123,26 @@ class MediChartController {
 
         // --- ENABLE INLINE EDITING FOR CURRENT MEDICATIONS TABLE ---
         currentMedicationsTable.isEditable = true   // Enable inline editing for Current Medications Table
+
+        // --- Enforce Double-Click for Editing ---
+        // Add an event filter to the TableView to require double-clicking for editing.
+        // This prevents single clicks from potentially triggering edit mode after programmatic selection.
+        currentMedicationsTable.addEventFilter(MouseEvent.MOUSE_CLICKED) { event ->
+            if (currentMedicationsTable.isEditable && !event.isConsumed) {  // Check if table is editable and event hasn't been handled
+                val cell = event.target as? TableCell<*, *> // Try to cast target to TableCell
+                if (cell != null && cell.tableColumn != null) { // Ensure it's a click on a cell within a column
+                    if (event.clickCount == 1) {
+                        // If it's a single click on an editable cell, consume the event
+                        // This prevents single-click editing while allowing selection change
+                        if (cell.tableColumn.isEditable) {  // Only consume if the column itself is editable
+                            event.consume() // Consume the event to stop it from triggering default edit logic
+                        }
+                    }
+                    // Double-clicks (event.clickCount == 2) are NOT consumed and will proceed to trigger standard editing
+                }
+            }
+        }
+        // --- End Enforce Double-Click
 
         // Set up inline editing using the setupStringInLineEditing extension function
         // This configures the cell factory and the onEditCommit handler for each column.

@@ -395,12 +395,12 @@ class DatabaseManager {
 
         connect()?.use { conn ->
             try {
-                conn.prepareStatement(sql).use { pstmt ->
-                pstmt.setString(1, surgery.name)
-                pstmt.setString(2, surgery.date?.toString())
-                pstmt.setString(3, surgery.surgeon)
-                pstmt.executeUpdate()
-                // System.out.println("Surgery added: ${surgery.name}") // Optional: for debugging
+                    conn.prepareStatement(sql).use { pstmt ->
+                    pstmt.setString(1, surgery.name)
+                    pstmt.setString(2, surgery.date?.toString())
+                    pstmt.setString(3, surgery.surgeon)
+                    pstmt.executeUpdate()
+                    // System.out.println("Surgery added: ${surgery.name}") // Optional: for debugging
                 }
             } catch (e: SQLException) {
                 System.err.println("Error adding surgery: ${e.message}")
