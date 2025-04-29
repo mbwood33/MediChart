@@ -15,9 +15,9 @@ import javafx.scene.control.DatePicker
 import java.time.LocalDate
 
 /**
- * Controller for the Edit Medication dialog.
- * Handles displaying and editing details of an existing medication.
- * EDITED: Copied from AddMedicationController and adapted for editing.
+ * Controller for the Add/Edit Medication dialog.
+ * Handles user input and provides the resulting data back to the caller.
+ * Based on the AddMedicationController, adapted for editing.
  */
 class EditMedicationController {
     // FXML elements for input fields injected by FXMLLoader
@@ -32,9 +32,6 @@ class EditMedicationController {
     @FXML lateinit var startDatePicker: DatePicker    // For the start date
     @FXML lateinit var manufacturerField: TextField
 
-    // Keep a reference to the dialog stage
-    private var dialogStage: Stage? = null
-
     // Properties to hold the result of the dialog
     var isSavedSuccessful: Boolean = false
         private set // Make setter private
@@ -42,69 +39,89 @@ class EditMedicationController {
     var medicationData: Medication? = null
         private set // Make setter private
 
-    // TODO: Add a property here to hold the ORIGINAL Medication object being edited
-    private var originalMedication: Medication? = null  // Add property to hold the item being edited
+    private var originalMedication: Medication? = null  // Holds the original Medication object being edited, including its ID
+
+    // Keep a reference to the dialog stage
+    private var dialogStage: Stage? = null
 
     /**
      * Called by FXMLLoader after the FXML is loaded.
      * Initializes the dialog elements.
-     * EXISTING (from Add dialog) - May need minor adjustments later.
+     * For editing, this method can be used for initial setup or validation binding.
      */
     @FXML
     fun initialize() {
-        // ... existing initialization logic (input validation, DatePicker setup, key listeners) ...
-        // TODO: May need to move from setDialogStage()
-        // Keep the input validation logic for required fields.
-        // The DatePicker logic will be used for the Start Date field.
+        // Initial setup if needed. For adding, fields start empty.
+        // For adding, fields start empty. For editing, fields are populated by setMedicationData().
+        // Any setup that depends on @FXML injected fields (like DatePicker converters or listeners) can go here.
+        // You might want to add DatePicker converter setup here later if needed.
     }
 
     /**
      * Public method called by the main controller to set the Stage and add key event listeners.
-     * EXISTING (from Add dialog)
+     * Also adds a handler for the window's close button.
      * @param stage The Stage that hosts this dialog.
      */
     fun setDialogStage(stage: Stage) {
-        dialogStage = stage
+        // dialogStage = stage
+        this.dialogStage = stage
 
-        // Add event filter to the scene for key presses
-        dialogStage?.scene?.addEventFilter(KeyEvent.KEY_PRESSED) { event ->
-            when (event.code) {
-                KeyCode.ENTER -> {
-                    // Check if the focus is *not* on a TextArea before triggering save with Enter
-                    // This allows multiline input in TextAreas
-                    if (dialogStage?.scene?.focusOwner !is TextArea) {
-                        handleSaveButton()  // Call the save handler
-                        event.consume() // Consume the event so it doesn't do anything else (like add a newline)
+        // Add event filter to the scene for key presses (Handles ENTER and ESCAPE)
+        dialogStage?.sceneProperty()?.addListener { _, _, newScene ->   // Use addListener on sceneProperty
+            newScene?.setOnKeyPressed { event ->
+                when (event.code) {
+                    KeyCode.ENTER -> {
+                        val focusOwner = newScene.focusOwner    // Get focus owner from new scene
+                        if (focusOwner != null && focusOwner !is TextArea) {
+                            handleSaveButton()  // Call the save handler
+                            event.consume() // Consume the event
+                        }
                     }
-                }
-                KeyCode.ESCAPE -> {
-                    handleCancelButton()    // Call the cancel handler
-                    event.consume() // Consume the event
-                }
-                else -> {
-                    // Do nothing for other keys
+
+                    KeyCode.ESCAPE -> {
+                        handleCancelButton()    // Call the cancel handler
+                        event.consume() // Consume the event
+                    }
+
+                    else -> {
+                        // Do nothing
+                    }
                 }
             }
         }
-        // Standard tabbing between controls should work automatically once controls are added to scene.
-        // If tabbing isn't working, it might indicate a more complex focus issue or OS interaction.
+
+        // Handle the window's close button (sets isSavedSuccessful to false if closed this way)
+        dialogStage?.setOnCloseRequest { event ->
+            isSavedSuccessful = false   // Ensure this is false if the user clones the window via the title bar button
+            // By default, the window closes. We don't need to consume the event unless we want to prevent closing under certain conditions.
+        }
     }
 
     /**
-     * NEW: Public method to receive the Medication data to be edited.
+     * Public method to receive the Medication data to be edited.
      * Called by the main controller before showing the dialog.
-     * TODO: Implement logic to populate the form fields with data from the provided Medication object.
+     * IMPLEMENTED: Logic to populate the form fields with data from the provided Medication object.
      */
     fun setMedicationData(medication: Medication) {
-        originalMedication = medication // Store the original data
-        // TODO: Populate all form fields (TextFields, DatePicker, etc.) using data from 'medication'
-        println("Edit dialog received medication data: ${medication.brandName ?: medication.genericName}")  // Placeholder print
+        originalMedication = medication // Store the original data so we have the ID later for updating
+
+        // --- Populate form fields with data from the Medication object ---
+        genericNameField.text = medication.genericName
+        brandNameField.text = medication.brandName ?: ""    // Handle potential nulls by setting empty string
+        dosageField.text = medication.dosage ?: ""
+        doseFormField.text = medication.doseForm ?: ""
+        instructionsField.text = medication.instructions ?: ""
+        reasonField.text = medication.reason ?: ""
+        prescriberField.text = medication.prescriber ?: ""
+        notesArea.text = medication.notes ?: ""
+        startDatePicker.value = medication.startDate    // Handles null LocalDates
+        manufacturerField.text = medication.manufacturer ?: ""
+        // --- End Populate form fields ---
     }
 
     /**
-     * Handles the Save button click.
-     * Validates input, captures data, and closes the dialog.
-     * EDITED: Will need to capture data and create an UPDATED Medication object with original ID.
+     * Handles the action when the Save button is clicked.
+     * Collects input, creates a Medication object, and signals success.
      */
     @FXML
     private fun handleSaveButton() {
@@ -123,61 +140,40 @@ class EditMedicationController {
         }
         // --- End Validation ---
 
-        // If validation passes:
-        // Capture data from form fields
-        // Create a NEW Medication object using the original ID and updated field values
-        // Set isSavedSuccessful = true
-        // Close dialogStage
+        // --- Implement capturing from form fields ---
+        val updatedGenericName = genericNameField.text.trim()   // Required field
+        val updatedBrandName = brandNameField.text.trim().takeIf { it.isNotEmpty() }    // Optional field (use takeIf)
+        val updatedDosage = dosageField.text.trim().takeIf { it.isNotEmpty() }
+        val updatedDoseForm = doseFormField.text.trim().takeIf { it.isNotEmpty() }
+        val updatedInstructions = instructionsField.text.trim().takeIf { it.isNotEmpty() }
+        val updatedReason = reasonField.text.trim().takeIf { it.isNotEmpty() }
+        val updatedPrescriber = prescriberField.text.trim().takeIf { it.isNotEmpty() }
+        val updatedNotes = notesArea.text.trim().takeIf { it.isNotEmpty() } // Use .text for TextArea
+        val updatedStartDate = startDatePicker.value // LocalDate?
+        val updatedManufacturer = manufacturerField.text.trim().takeIf { it.isNotEmpty() }
+        // --- End Capture from form fields ---
 
-        println("Save button clicked in Edit dialog (TODO: Capture data and update original medication).")  // Placeholder print
+        // --- Create an UPDATED Medication object using the originalMedication.id and copied/updated fields ---
+        // Ensure originalMedication is not null before accessing its ID
+        medicationData = originalMedication?.copy(
+            id = originalMedication?.id ?: 0,  // Use the original ID, default to 0 if somehow null (shouldn't happen)
+            genericName = updatedGenericName,
+            brandName = updatedBrandName,
+            dosage = updatedDosage,
+            doseForm = updatedDoseForm,
+            instructions = updatedInstructions,
+            reason = updatedReason,
+            prescriber = updatedPrescriber,
+            notes = updatedNotes,
+            startDate = updatedStartDate,
+            manufacturer = updatedManufacturer
+        )
+        // --- End Create Updated Object ---
 
-        // TODO: Implement capturing from form fields
-        // val updatedGenericName = genericNameField.text
-        // val updatedBrandName = brandNameField.text?.takeIf { it.isNotEmpty() }
-        // ... capture other fields ...
+        // Signal that the save was successful *only after* data is successfully captured/object created
+        isSavedSuccessful = true
 
-        /*
-        // Collect data from input fields
-        // !-- genericName already collected above --!
-        val brandName = brandNameField.text.trim().takeIf { it.isNotEmpty() }   // Use takeIf for optional fields
-        val dosage = dosageField.text.trim().takeIf { it.isNotEmpty() }
-        val doseForm = doseFormField.text.trim().takeIf {it.isNotEmpty() }
-        val instructions = instructionsField.text.trim().takeIf { it.isNotEmpty() }
-        val reason = reasonField.text.trim().takeIf { it.isNotEmpty() }
-        val prescriber = prescriberField.text.trim().takeIf { it.isNotEmpty() }
-        val notes = notesArea.text.trim().takeIf { it.isNotEmpty() }
-        val startDate = startDatePicker.value
-        val manufacturer = manufacturerField.text.trim().takeIf { it.isNotEmpty() }
-         */
-
-        // TODO: Create an UPDATED Medication object using the originalMedication.id and copied/updated fields
-        // medicationData = originalMedication?.copy(
-        //     genericName = updatedGenericName,
-        //     brandName = updatedBrandName,
-        //     // ... copy/update other fields...
-        // )
-
-        /*
-        // Create a Medication object from the input
-        // Use 0 for ID as the database will assign the real ID on insertion
-        medicationData = Medication(
-            id = 0,
-            genericName = genericName,
-            brandName = brandName,
-            dosage = dosage,
-            doseForm = doseForm,
-            instructions = instructions,
-            reason = reason,
-            prescriber = prescriber,
-            notes = notes,
-            startDate = startDate,
-            manufacturer = manufacturer
-        )*/
-
-        // Signal that the save was successful
-        // isSavedSuccessful = true // Set flag if save logic is completed
-
-        closeDialog()   // Close the dialog window if save logic is copmleted
+        closeDialog()   // Close the dialog window
     }
 
     /**
@@ -186,7 +182,6 @@ class EditMedicationController {
      */
     @FXML
     private fun handleCancelButton() {
-        println("Cancel button clicked in Edit dialog.")
         isSavedSuccessful = false   // Already false by default, but good to be explicit
         closeDialog()   // Close the dialog window
     }
@@ -215,6 +210,4 @@ class EditMedicationController {
         alert.contentText = content
         alert.showAndWait() // Show the alert and wait for the user to close it
     }
-
-    // TODO: Add a public method to set data for editing existing medications (takes a Medication object)
 }

@@ -287,19 +287,82 @@ class MediChartController {
 
     /**
      * Handles the action of editing the selected current medication.
-     * TODO: Implement this method.
-     * EXISTING: Placeholder method.
+     * Opens a dialog to edit medication details.
+     * EDITED: Implemented dialog loading, showing, and passing data to the dialog controller.
      */
     @FXML
     private fun handleEditMedication() {
         println("Edit Medications button clicked.")
         val selectedMed = currentMedicationsTable.selectionModel.selectedItem   // Get selected item from table
+
         if (selectedMed != null) {
             println("Edit: ${selectedMed.brandName ?: selectedMed.genericName}")
-            // TODO: Open edit dialog, populate with selectedMed data
+            try {
+                // --- Load the Edit Medication dialog FXML ---
+                val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/EditMedicationDialog.fxml")) // <-- CORRECTED LINE
+                val dialogRoot = fxmlLoader.load<VBox>() // Load the root element (VBox)
+
+                // Get the controller for the dialog
+                val dialogController = fxmlLoader.getController<EditMedicationController>() // Get the Edit dialog controller
+
+                // Create a new stage for the dialog window
+                val dialogStage = Stage()
+                dialogStage.title = "Edit Medication"   // Set the dialog title
+                dialogStage.initModality(Modality.WINDOW_MODAL) // Make it modal (blocks input to parent window)
+                dialogStage.initOwner(currentMedicationsTable.scene.window) // Set the owner stage for centering
+                val dialogScene = Scene(dialogRoot) // Create the scene from the loaded FXML root
+
+                // Pass the Stage reference to the dialog controller (for closing the dialog etc.)
+                dialogController.setDialogStage(dialogStage)    // Pass Stage
+
+                // --- Pass the selected Medication data to the dialog controller ---
+                dialogController.setMedicationData(selectedMed)
+
+                dialogStage.scene = dialogScene
+                dialogStage.showAndWait()
+
+                // --- Handle the results after the dialog is closed ---
+                // This part is similar to handleAddMedication, but handles saving/updating the item.
+                // Check if the user clicked Save in the dialog
+                if (dialogController.isSavedSuccessful) {
+                    // Get the updated data from the dialog controller (This assumes Save button in dialog
+                    // captured the data and put it into dialogController.medicationData)
+                    val updatedMedication = dialogController.medicationData
+
+                    // Ensure the updated data was captured from the dialog
+                    if (updatedMedication != null) {
+                        // TODO: Implement the database update method in DatabaseManager first!
+                        // Call the database update method with the updated medication object
+                        // dbManager.updateMedication(updatedMedication)
+
+                        // For now, since DB update isn't implemented, just update the item in the TableView's list
+                        // Find the index of the original item in the list and replace it with the updated one
+                        val index = currentMedicationsTable.items.indexOf(selectedMed)  // Use the original object to find its position
+                        if (index >= 0) {
+                            currentMedicationsTable.items[index] = updatedMedication // Replace the item in the list
+                            // The TableView should update automatically because its item list is Observable.
+                        }
+
+                        loadCurrentMedications()    // Refresh the table to be sure (or rely on ObservableList update)
+
+                        // TODO: Add selection highlighting for the edited item after refresh?
+
+                        println("Medication updated successfully (in memory): ${updatedMedication.brandName ?: updatedMedication.genericName}") // Placeholder print
+                    } else {
+                        println("Edit dialog closed, but no updated medication data was captured (Save may have failed or not implemented yet).")   // Placeholder print
+                    }
+                } else {
+                    println("Edit Medication dialog cancelled.")    // Placeholder print
+                }
+            } catch (e: IOException) {
+                // Handle potential errors during FXML loading
+                System.err.println("Error loading Edit Medication dialog FXML: ${e.message}")
+                e.printStackTrace()
+                // TODO: Show an error message to the user
+            }
         } else {
             // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
-            println("No medication selected for editing.")
+            println("No medication selected for editing.")  // Placeholder print
         }
     }
 
