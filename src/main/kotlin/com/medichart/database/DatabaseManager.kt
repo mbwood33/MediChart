@@ -181,6 +181,49 @@ class DatabaseManager {
     }
 
     /**
+     * Updates an existing medication record in the current_meds table.
+     * Matches the record by the Medication object's ID.
+     * @param medication The Medication object with updated details.
+     */
+    fun updateMedication(medication: Medication) {
+        // SQL UPDATE statement to update all columns based on the 'id'
+        val sql = """
+            UPDATE current_meds SET
+                generic_name = ?, brand_name = ?, dosage = ?, dose_form = ?,
+                instructions = ?, reason = ?, prescriber = ?, notes = ?,
+                start_date = ?, manufacturer = ?
+            WHERE id = ?;
+        """.trimIndent()
+
+        connect()?.use { conn ->    // Get a database connection and use{} for auto-closing
+            conn.prepareStatement(sql).use { pstmt ->   // Prepare the SQL statement and use use {}
+                pstmt.setString(1, medication.genericName)
+                pstmt.setString(2, medication.brandName?.takeIf { it.isNotEmpty() })
+                pstmt.setString(3, medication.dosage?.takeIf { it.isNotEmpty() })
+                pstmt.setString(4, medication.doseForm?.takeIf { it.isNotEmpty() })
+                pstmt.setString(5, medication.instructions?.takeIf { it.isNotEmpty() })
+                pstmt.setString(6, medication.reason?.takeIf { it.isNotEmpty() })
+                pstmt.setString(7, medication.prescriber?.takeIf { it.isNotEmpty() })
+                pstmt.setString(8, medication.notes?.takeIf { it.isNotEmpty() })
+                pstmt.setString(9, medication.startDate?.toString())
+                pstmt.setString(10, medication.manufacturer?.takeIf { it.isNotEmpty() })
+
+                // Set the WHERE clause parameter (the medication's ID)
+                pstmt.setInt(11, medication.id)
+
+                // Execute the update statement
+                val affectedRows = pstmt.executeUpdate()
+
+                if (affectedRows > 0) {
+                    println("Medication ID ${medication.id} updated successfully in database.")
+                } else {
+                    println("No medication found with ID ${medication.id} to update in database.")
+                }
+            }
+        } ?: System.err.println("Failed to update medication ID ${medication.id}: Could not get database connection.")
+    }
+
+    /**
      * Archives a medication: moves it from 'current_meds' to 'past_meds'.
      * Handles LocalDate start_date when creating placeholder date_ranges string.
      *

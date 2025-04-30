@@ -150,42 +150,42 @@ class MediChartController {
         // Database update is left as a TODO for a separate "Save" feature.
 
         // Generic Name
-        currentGenericNameColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+        currentGenericNameColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(genericName = newValue)   // Define how to update genericName
         }
 
         // Brand Name
-        currentBrandNameColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+        currentBrandNameColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(brandName = newValue.takeIf { it.isNotEmpty () })   // Define how to update brandName
         }
 
         // Dosage
-        currentDosageColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+        currentDosageColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(dosage = newValue.takeIf { it.isNotEmpty() })   // Define how to update dosage
         }
 
         // Dosage From
-        currentDoseFormColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+        currentDoseFormColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(doseForm = newValue.takeIf { it.isNotEmpty() })   // Define how to update doseForm
         }
 
         // Instructions
-        currentInstructionsColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+        currentInstructionsColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(instructions = newValue.takeIf { it.isNotEmpty() })   // Define how to update instructions
         }
 
         // Manufacturer
-        currentManufacturerColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+        currentManufacturerColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(manufacturer = newValue.takeIf { it.isNotEmpty() })   // Define how to update manufacturer
         }
 
         // Reason
-        currentReasonColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+        currentReasonColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(reason = newValue.takeIf { it.isNotEmpty() })   // Define how to update reason
         }
 
         // Prescriber
-        currentPrescriberColumn.setupStringInLineEditing(currentMedicationsTable) { item, newValue ->
+        currentPrescriberColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(prescriber = newValue.takeIf { it.isNotEmpty() })   // Define how to update prescriber
         }
 
@@ -333,15 +333,15 @@ class MediChartController {
                     if (updatedMedication != null) {
                         // TODO: Implement the database update method in DatabaseManager first!
                         // Call the database update method with the updated medication object
-                        // dbManager.updateMedication(updatedMedication)
+                        dbManager.updateMedication(updatedMedication)
 
                         // For now, since DB update isn't implemented, just update the item in the TableView's list
                         // Find the index of the original item in the list and replace it with the updated one
-                        val index = currentMedicationsTable.items.indexOf(selectedMed)  // Use the original object to find its position
-                        if (index >= 0) {
-                            currentMedicationsTable.items[index] = updatedMedication // Replace the item in the list
-                            // The TableView should update automatically because its item list is Observable.
-                        }
+                        // val index = currentMedicationsTable.items.indexOf(selectedMed)  // Use the original object to find its position
+                        // if (index >= 0) {
+                        //     currentMedicationsTable.items[index] = updatedMedication // Replace the item in the list
+                        //     // The TableView should update automatically because its item list is Observable.
+                        // }
 
                         loadCurrentMedications()    // Refresh the table to be sure (or rely on ObservableList update)
 
@@ -575,9 +575,11 @@ class MediChartController {
  * @param updateItem The lambda that defines how to create a new Medication object with the updated value.
  * It takes the original Medication object (oldItem: Medication) and the new String value (newValue: String?)
  * as parameters and should return the updated Medication object.
+ * IMPLEMENTED: Call to dbManager.updateMedication() to save changes to the database.
  */
 fun TableColumn<Medication, String>.setupStringInLineEditing(
     tableView: TableView<Medication>,   // Need access to the TableView to update its items
+    dbManager: DatabaseManager,
     updateItem: (oldItem: Medication, newValue: String) -> Medication  // Lambda for creating the updated item
 ) {
     // Set the cell factory to use TextFieldTableCell for String columns
@@ -597,7 +599,9 @@ fun TableColumn<Medication, String>.setupStringInLineEditing(
             val updatedItem = updateItem(item, newValue)
             // Replace the old item with the new one in the table's ObservableList
             tableView.items[itemIndex] = updatedItem
-            // TODO: Implement database update for this specific item here later (add updateMedication method)
+            // IMPLEMENTED: Call the database update method to save the change persistently
+            dbManager.updateMedication(updatedItem)
+            println("Inline edit committed and database updated for ID ${updatedItem.id}.")
         }
     }
 }
