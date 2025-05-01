@@ -98,29 +98,6 @@ class MediChartController {
         currentStartDateColumn.cellValueFactory = PropertyValueFactory("startDate")
         currentManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
 
-        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Notes columns.
-
-        // Set up Past Medications Table Columns
-        pastGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
-        pastBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
-        pastDosageColumn.cellValueFactory = PropertyValueFactory("dosage")
-        pastDoseFormColumn.cellValueFactory = PropertyValueFactory("doseForm")
-        pastInstructionsColumn.cellValueFactory = PropertyValueFactory("instructions")
-        pastReasonColumn.cellValueFactory = PropertyValueFactory("reason")
-        pastPrescriberColumn.cellValueFactory = PropertyValueFactory("prescriber")
-        pastHistoryNotesColumn.cellValueFactory = PropertyValueFactory("historyNotes")
-        pastReasonForStoppingColumn.cellValueFactory = PropertyValueFactory("reasonForStopping")
-        pastDateRangesColumn.cellValueFactory = PropertyValueFactory("dateRanges")
-        pastManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
-
-        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Past Meds columns
-        // TODO: (Future) Implement custom cell factory for pastDateRangesColumn to format the List<DateRange> nicely
-
-        // Set up Surgeries Table Columns
-        surgeryNameColumn.cellValueFactory = PropertyValueFactory("name")
-        surgeryDateColumn.cellValueFactory = PropertyValueFactory("date")
-        surgerySurgeonColumn.cellValueFactory = PropertyValueFactory("surgeon")
-
         // --- ENABLE INLINE EDITING FOR CURRENT MEDICATIONS TABLE ---
         currentMedicationsTable.isEditable = true   // Enable inline editing for Current Medications Table
 
@@ -144,7 +121,7 @@ class MediChartController {
         }
         // --- End Enforce Double-Click
 
-        // Set up inline editing using the setupStringInLineEditing extension function
+        // Set up inline editing using the setupStringInLineEditing extension function for current medications
         // This configures the cell factory and the onEditCommit handler for each column.
         // The lambda defines how to create a new Medication object using copy().
         // Database update is left as a TODO for a separate "Save" feature.
@@ -153,41 +130,96 @@ class MediChartController {
         currentGenericNameColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(genericName = newValue)   // Define how to update genericName
         }
-
         // Brand Name
         currentBrandNameColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(brandName = newValue.takeIf { it.isNotEmpty () })   // Define how to update brandName
         }
-
         // Dosage
         currentDosageColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(dosage = newValue.takeIf { it.isNotEmpty() })   // Define how to update dosage
         }
-
         // Dosage From
         currentDoseFormColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(doseForm = newValue.takeIf { it.isNotEmpty() })   // Define how to update doseForm
         }
-
         // Instructions
         currentInstructionsColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(instructions = newValue.takeIf { it.isNotEmpty() })   // Define how to update instructions
         }
-
         // Manufacturer
         currentManufacturerColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(manufacturer = newValue.takeIf { it.isNotEmpty() })   // Define how to update manufacturer
         }
-
         // Reason
         currentReasonColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(reason = newValue.takeIf { it.isNotEmpty() })   // Define how to update reason
         }
-
         // Prescriber
         currentPrescriberColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
             item.copy(prescriber = newValue.takeIf { it.isNotEmpty() })   // Define how to update prescriber
         }
+
+        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Notes columns.
+
+        // Set up Past Medications Table Columns
+        pastGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
+        pastBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
+        pastDosageColumn.cellValueFactory = PropertyValueFactory("dosage")
+        pastDoseFormColumn.cellValueFactory = PropertyValueFactory("doseForm")
+        pastInstructionsColumn.cellValueFactory = PropertyValueFactory("instructions")
+        pastReasonColumn.cellValueFactory = PropertyValueFactory("reason")
+        pastPrescriberColumn.cellValueFactory = PropertyValueFactory("prescriber")
+        pastHistoryNotesColumn.cellValueFactory = PropertyValueFactory("historyNotes")
+        pastReasonForStoppingColumn.cellValueFactory = PropertyValueFactory("reasonForStopping")
+        pastDateRangesColumn.cellValueFactory = PropertyValueFactory("dateRanges")
+        pastManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
+
+        // --- ENABLE INLINE EDITING FOR PAST MEDICATIONS TABLE ---
+        pastMedicationsTable.isEditable = true   // Enable inline editing for Past Medications Table
+
+        // Set up inline editing using the setupStringInLineEditing extension function for past medications
+        // This configures the cell factory and the onEditCommit handler for each column.
+        // The lambda defines how to create a new Medication object using copy().
+        // Database update is left as a TODO for a separate "Save" feature.
+
+        // Generic Name
+        pastGenericNameColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
+            item.copy(genericName = newValue)   // Define how to update genericName
+        }
+        // Brand Name
+        pastBrandNameColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
+            item.copy(brandName = newValue.takeIf { it.isNotEmpty () })   // Define how to update brandName
+        }
+        // Dosage
+        pastDosageColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
+            item.copy(dosage = newValue.takeIf { it.isNotEmpty() })   // Define how to update dosage
+        }
+        // Dosage From
+        pastDoseFormColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
+            item.copy(doseForm = newValue.takeIf { it.isNotEmpty() })   // Define how to update doseForm
+        }
+        // Instructions
+        pastInstructionsColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
+            item.copy(instructions = newValue.takeIf { it.isNotEmpty() })   // Define how to update instructions
+        }
+        // Manufacturer
+        pastManufacturerColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
+            item.copy(manufacturer = newValue.takeIf { it.isNotEmpty() })   // Define how to update manufacturer
+        }
+        // Reason
+        pastReasonColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
+            item.copy(reason = newValue.takeIf { it.isNotEmpty() })   // Define how to update reason
+        }
+        // Prescriber
+        pastPrescriberColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
+            item.copy(prescriber = newValue.takeIf { it.isNotEmpty() })   // Define how to update prescriber
+        }
+        // TODO: Add inline editing for past History Notes (TextArea) and Date Ranges (custom cell/dialog)
+
+        // Set up Surgeries Table Columns
+        surgeryNameColumn.cellValueFactory = PropertyValueFactory("name")
+        surgeryDateColumn.cellValueFactory = PropertyValueFactory("date")
+        surgerySurgeonColumn.cellValueFactory = PropertyValueFactory("surgeon")
 
         // Load data into tables
         loadCurrentMedications()
@@ -602,6 +634,45 @@ fun TableColumn<Medication, String>.setupStringInLineEditing(
             // IMPLEMENTED: Call the database update method to save the change persistently
             dbManager.updateMedication(updatedItem)
             println("Inline edit committed and database updated for ID ${updatedItem.id}.")
+        }
+    }
+}
+
+/**
+ * Sets up a TableColumn<PastMedication, String> for inline editing using TextFieldTableCell.
+ * Applies a DefaultStringConverter and handles updating the PastMedication object in the TableView's items list.
+ * This function is an extension on TableColumn<PastMedication, String>.
+ *
+ * @param tableView The TableView that this column belongs to. Needed to access and update the list items.
+ * @param dbManager The DatabaseManager instance to save the updated item.
+ * @param updateItem The lambda that defines how to create a new PastMedication object with the updated value.
+ * It takes the original PastMedication object (oldItem: PastMedication) and the new String value (newValue: String?)
+ * as parameters and should return the updated PastMedication object.
+ * IMPLEMENTED: Call to dbManager.updatePastMedication() to save changes to the database.
+ */
+@JvmName("setupPastMedicationStringInLineEditing")
+fun TableColumn<PastMedication, String>.setupStringInLineEditing(
+    tableView: TableView<PastMedication>,
+    dbManager: DatabaseManager,
+    updateItem: (oldItem: PastMedication, newValue: String) -> PastMedication
+) {
+    this.cellFactory = TextFieldTableCell.forTableColumn(DefaultStringConverter())
+
+    this.onEditCommit = EventHandler { event: CellEditEvent<PastMedication, String> ->
+        val item = event.rowValue
+        val newValue = event.newValue
+
+        val itemIndex = tableView.items.indexOf(item)
+
+        if (itemIndex >= 0 ) {
+            val updatedItem = updateItem(item, newValue)
+
+            // Update the item in the TableView's ObservableList first for immediate visual feedback
+            tableView.items[itemIndex] = updatedItem
+
+            // Call the database update method to save the change persistently
+            dbManager.updatePastMedication(updatedItem)
+            println("Inline edit commited and database updated for PastMedication ID ${updatedItem.id}.")   // Optional: for debugging
         }
     }
 }

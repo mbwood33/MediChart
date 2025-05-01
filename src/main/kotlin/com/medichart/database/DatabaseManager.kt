@@ -2,11 +2,11 @@ package com.medichart.database
 
 import com.medichart.model.Medication
 import com.medichart.model.PastMedication
+import com.medichart.model.PastMedication.DateRange
 import com.medichart.model.Surgery
 import java.sql.*
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
-import java.util.ArrayList
 
 /**
  * Manages database connections and operations for the MediChart application.
@@ -389,8 +389,9 @@ class DatabaseManager {
      * @return A list of PastMedication objects.
      */
     fun getAllPastMedications(): List<PastMedication> {
-        val sql = "SELECT id, generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer FROM past_meds"
         val pastMedications = mutableListOf<PastMedication>()
+        // val sql = "SELECT id, generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer FROM past_meds"
+        val sql = "SELECT * FROM past_meds;"
 
         connect()?.use { conn ->
             try {
@@ -400,23 +401,27 @@ class DatabaseManager {
                         while (rs.next()) {
                             // TODO: Implement robust parsing of date_ranges string into List<PastMedication.DateRange> using LocalDate.parse()
                             // For now, creating empty list of date ranges
-                            val dateRanges = listOf<PastMedication.DateRange>() // Placeholder for parsed list
+                            // val dateRanges = listOf<PastMedication.DateRange>() // Placeholder for parsed list
 
-                            val pastMed = PastMedication(
-                                rs.getInt("id"),
-                                rs.getString("generic_name"),
-                                rs.getString("brand_name"),
-                                rs.getString("dosage"),
-                                rs.getString("dose_form"),
-                                rs.getString("instructions"),
-                                rs.getString("reason"),
-                                rs.getString("prescriber"),
-                                rs.getString("history_notes"),
-                                rs.getString("reason_for_stopping"),
-                                dateRanges, // Use the parsed list (currently empty, will contain LocalDate in future)
-                                rs.getString("manufacturer")
-                            )
-                            pastMedications.add(pastMed)
+                            val id = rs.getInt("id")
+                            val genericName = rs.getString("generic_name")
+                            val brandName = rs.getString("brand_name")
+                            val dosage = rs.getString("dosage")
+                            val doseForm = rs.getString("dose_form")
+                            val instructions = rs.getString("instructions")
+                            val reason = rs.getString("reason")
+                            val prescriber = rs.getString("prescriber")
+                            val historyNotes = rs.getString("history_notes")
+                            val reasonForStopping = rs.getString("reason_for_stopping")
+                            val dateRangesString = rs.getString("date_ranges")
+                            val manufacturer = rs.getString("manufacturer")
+
+                            val dateRanges = deserializeDateRanges(dateRangesString)
+
+                            pastMedications.add(PastMedication(
+                                id, genericName, brandName, dosage, doseForm, instructions,
+                                reason, prescriber, historyNotes, reasonForStopping, dateRanges, manufacturer
+                            ))
                         }
                     }
                 }
@@ -497,7 +502,95 @@ class DatabaseManager {
         return surgeries
     }
 
-    // TODO: Add methods for updating records (e.g., editing notes, adding end date when archiving)
-    // TODO: Implement proper date range storage and parsing for past_meds
+    /**
+     * Helper to serialize List<DateRange> to TEXT for database
+     * Converts the List<Range> to a simple JSON string format
+     */
+    private fun serializeDateRanges(dateRanges: List<DateRange>?): String? {
+        if (dateRanges == null || dateRanges.isEmpty()) {
+            return null
+        }
+        // Simple JSON array format: [{"startDate":"YYYY-MM-DD", "endDate":"YYYY-MM-DD"}, ...]
+        return dateRanges.joinToString(prefix = "[", separator = ",", postfix = "]") { range ->
+            """{"startDate":"${range.startDate?.toString() ?: ""}", "endDate":"${range.endDate?.toString() ?: ""}"}"""
+        }
+    }
+
+    /**
+     * Helper to deserialize TEXT from database to List<DateRange>
+     * Parses the simple JSON string format back to a List<DateRange>
+     */
+    private fun deserializeDateRanges(dateRangesString: String?): List<DateRange> {
+        if (dateRangesString.isNullOrBlank() || dateRangesString == "[]") {
+            return emptyList()
+        }
+        val ranges = mutableListOf<DateRange>()
+        // Attempt to parse the JSON string - Basic parsing, could be enhanced with a library
+        val rangeStrings = dateRangesString.substring(1, dateRangesString.length - 1).split("}.{")
+
+        for (rangeStr in rangeStrings) {
+            try {
+                val cleanRangeStr = if (rangeStrings.size > 1) "{$rangeStr}" else rangeStr
+                val startDateMatch = Regex("""startDate":"([^"]*)""").find(cleanRangeStr)
+                val endDateMatch = Regex("""endDate":"([^"]*)""").find(cleanRangeStr)
+
+                val startDateStr = startDateMatch?.groupValues?.getOrNull(1) ?: ""
+                val endDateStr = endDateMatch?.groupValues?.getOrNull(1) ?: ""
+
+                val startDate = try { LocalDate.parse(startDateStr).takeIf { startDateStr.isNotBlank() } } catch (e: DateTimeParseException) { null }
+                val endDate = try { LocalDate.parse(endDateStr).takeIf { endDateStr.isNotBlank() } } catch (e: DateTimeParseException) { null }
+
+                ranges.add(DateRange(startDate, endDate))
+            } catch (e: Exception) {
+                System.err.println("Error parsing date range string: '$rangeStr'. ${e.message}")
+                // Continue with other ranges
+            }
+        }
+        return ranges
+    }
+
+    /**
+     * Updates an existing past medication record in the past_meds table.
+     * Matches the record by the PastMedication object's ID.
+     * @param pastMedication The PastMedication object with updated details.
+     */
+    // This is weird... check this...
+    fun updatePastMedication(pastMedication: PastMedication) { // <-- ADD THIS NEW FUNCTION
+        val sql = """
+            UPDATE past_meds SET
+                generic_name = ?, brand_name = ?, dosage = ?, dose_form = ?,
+                instructions = ?, reason = ?, prescriber = ?, history_notes = ?,
+                reason_for_stopping = ?, date_ranges = ?, manufacturer = ?
+            WHERE id = ?;
+        """.trimIndent()
+
+        connect()?.use { conn ->
+            conn.prepareStatement(sql).use { pstmt ->
+                pstmt.setString(1, pastMedication.genericName)
+                pstmt.setString(2, pastMedication.brandName?.takeIf { it.isNotEmpty() })
+                pstmt.setString(3, pastMedication.dosage?.takeIf { it.isNotEmpty() })
+                pstmt.setString(4, pastMedication.doseForm?.takeIf { it.isNotEmpty() })
+                pstmt.setString(5, pastMedication.instructions?.takeIf { it.isNotEmpty() })
+                pstmt.setString(6, pastMedication.reason?.takeIf { it.isNotEmpty() })
+                pstmt.setString(7, pastMedication.prescriber?.takeIf { it.isNotEmpty() })
+                pstmt.setString(8, pastMedication.historyNotes?.takeIf { it.isNotEmpty() })
+                pstmt.setString(9, pastMedication.reasonForStopping?.takeIf { it.isNotEmpty() })
+                // Serialize the List<DateRange> to TEXT for saving
+                pstmt.setString(10, serializeDateRanges(pastMedication.dateRanges))
+                pstmt.setString(11, pastMedication.manufacturer?.takeIf { it.isNotEmpty() })
+
+                pstmt.setInt(12, pastMedication.id)
+
+                val affectedRows = pstmt.executeUpdate()
+
+                if (affectedRows > 0) {
+                    println("Past medication ID ${pastMedication.id} updated successfully in database.")
+                } else {
+                    println("No past medication found with ID ${pastMedication.id} to update in database.")
+                }
+            }
+        } ?: System.err.println("Failed to update past medication ID ${pastMedication.id}: Could not get database connection.")
+    }
+
     // TODO: Implement delete methods for medications and surgeries
 }
