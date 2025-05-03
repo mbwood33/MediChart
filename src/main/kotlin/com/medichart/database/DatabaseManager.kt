@@ -506,7 +506,7 @@ class DatabaseManager {
      * Helper to serialize List<DateRange> to TEXT for database
      * Converts the List<Range> to a simple JSON string format
      */
-    private fun serializeDateRanges(dateRanges: List<DateRange>?): String? {
+    public fun serializeDateRanges(dateRanges: List<DateRange>?): String? {
         if (dateRanges == null || dateRanges.isEmpty()) {
             return null
         }
@@ -520,7 +520,7 @@ class DatabaseManager {
      * Helper to deserialize TEXT from database to List<DateRange>
      * Parses the simple JSON string format back to a List<DateRange>
      */
-    private fun deserializeDateRanges(dateRangesString: String?): List<DateRange> {
+    public fun deserializeDateRanges(dateRangesString: String?): List<DateRange> {
         if (dateRangesString.isNullOrBlank() || dateRangesString == "[]") {
             return emptyList()
         }

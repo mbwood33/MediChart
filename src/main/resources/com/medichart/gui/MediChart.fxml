@@ -82,7 +82,9 @@
                                         </TableView>
                                         <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
                                             <children>
-                                                <Button mnemonicParsing="false" onAction="#handleUnarchiveMedication" text="Unarchive Selected" />
+                                                <Button mnemonicParsing="false" onAction="#handleAddPastMedication" text="Add to Archive" fx:id="addPastMedicationButton" />
+                                                <Button mnemonicParsing="false" onAction="#handleEditPastMedication" text="Edit Selected" fx:id="editPastMedication" />
+                                                <Button mnemonicParsing="false" onAction="#handleUnarchiveMedication" text="Unarchive Selected" fx:id="unarchiveButton" />
                                                 <Button mnemonicParsing="false" onAction="#handleDeletePastMedication" text="Delete Selected" />
                                             </children>
                                         </HBox>

@@ -29,7 +29,10 @@ import javafx.collections.FXCollections
 import javafx.event.EventHandler
 import java.util.Comparator   // Needed for sorting
 import kotlin.random.Random
-
+import javafx.beans.property.SimpleObjectProperty   // Might be needed for DatePickerTableCell
+import javafx.beans.binding.Bindings    // Might be needed for complex cell value factories
+import javafx.scene.control.Button
+import javafx.scene.layout.Region   // If Region is used in FXML HBoxes
 
 /**
  * Controller class for the main MediChart GUI.
@@ -71,6 +74,25 @@ class MediChartController {
     @FXML lateinit var surgeryDateColumn: TableColumn<Surgery, String>
     @FXML lateinit var surgerySurgeonColumn: TableColumn<Surgery, String>
 
+    // FXML elements for Buttons (added 5/3/25)
+    @FXML lateinit var addMedicationButton: Button
+    @FXML lateinit var editMedicationButton: Button
+    @FXML lateinit var archiveMedicationButton: Button
+    @FXML lateinit var deleteCurrentMedicationButton: Button
+
+    // Past Medications Tab Buttons (added 5/3/25)
+    @FXML lateinit var addPastMedicationButton: Button
+    @FXML lateinit var editPastMedicationButton: Button
+    @FXML lateinit var unarchiveButton: Button
+    @FXML lateinit var deletePastMedicationButton: Button
+
+    // Other potential FXML elements (added 5/3/25)
+    // @FXML lateinit var sortBrandNameButton: Button // Add this if you added fx:id="sortBrandNameButton"
+    // @FXML lateinit var printCurrentMedsButton: Button // Add this if you added fx:id
+    // @FXML lateinit var exportCurrentMedsPdfButton: Button // Add this if you added fx:id
+    // @FXML lateinit var exportCurrentMedsWordButton: Button // Add this if you added fx:id
+    // @FXML lateinit var addSurgeryButton: Button // Add this if you added fx:id
+
     private lateinit var currentMedicationsData: ObservableList<Medication>
     private lateinit var pastMedicationsData: ObservableList<PastMedication>
     private lateinit var surgeriesData: ObservableList<Surgery>
@@ -98,10 +120,37 @@ class MediChartController {
         currentStartDateColumn.cellValueFactory = PropertyValueFactory("startDate")
         currentManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
 
+        // TODO: Apply Custom Cell Factory for Word Wrapping to Notes Column
+        // TODO: Implement custom cell factory for Start Date (DatePickerTableCell)
+
+        // Set up Past Medications Table Columns
+        pastGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
+        pastBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
+        pastDosageColumn.cellValueFactory = PropertyValueFactory("dosage")
+        pastDoseFormColumn.cellValueFactory = PropertyValueFactory("doseForm")
+        pastInstructionsColumn.cellValueFactory = PropertyValueFactory("instructions")
+        pastReasonColumn.cellValueFactory = PropertyValueFactory("reason")
+        pastPrescriberColumn.cellValueFactory = PropertyValueFactory("prescriber")
+        pastHistoryNotesColumn.cellValueFactory = PropertyValueFactory("historyNotes")
+        pastReasonForStoppingColumn.cellValueFactory = PropertyValueFactory("reasonForStopping")
+        pastDateRangesColumn.cellValueFactory = PropertyValueFactory("dateRanges")
+        pastManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
+
+        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Past Meds History Notes column
+        // TODO: (Future) Implement custom cell factory for pastDateRangesColumn to format/edit the List<DateRange>
+
+        // Set up Surgeries Table Columns
+        surgeryNameColumn.cellValueFactory = PropertyValueFactory("name")
+        surgeryDateColumn.cellValueFactory = PropertyValueFactory("date")
+        surgerySurgeonColumn.cellValueFactory = PropertyValueFactory("surgeon")
+
+        // TODO: (Future) Implement custom cell factory for surgeryDateColumn (DatePickerTableCell)
+        // TODO: (Future) Add inline editing for Surgeries table
+
         // --- ENABLE INLINE EDITING FOR CURRENT MEDICATIONS TABLE ---
         currentMedicationsTable.isEditable = true   // Enable inline editing for Current Medications Table
 
-        // --- Enforce Double-Click for Editing ---
+        // --- Enforce Double-Click for Editing (Current Meds) ---
         // Add an event filter to the TableView to require double-clicking for editing.
         // This prevents single clicks from potentially triggering edit mode after programmatic selection.
         currentMedicationsTable.addEventFilter(MouseEvent.MOUSE_CLICKED) { event ->
@@ -114,8 +163,8 @@ class MediChartController {
                         if (cell.tableColumn.isEditable) {  // Only consume if the column itself is editable
                             event.consume() // Consume the event to stop it from triggering default edit logic
                         }
+                        // TODO: Add checks for other cell types like DatePickerTableCell if they become editable
                     }
-                    // Double-clicks (event.clickCount == 2) are NOT consumed and will proceed to trigger standard editing
                 }
             }
         }
@@ -161,21 +210,28 @@ class MediChartController {
 
         // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Notes columns.
 
-        // Set up Past Medications Table Columns
-        pastGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
-        pastBrandNameColumn.cellValueFactory = PropertyValueFactory("brandName")
-        pastDosageColumn.cellValueFactory = PropertyValueFactory("dosage")
-        pastDoseFormColumn.cellValueFactory = PropertyValueFactory("doseForm")
-        pastInstructionsColumn.cellValueFactory = PropertyValueFactory("instructions")
-        pastReasonColumn.cellValueFactory = PropertyValueFactory("reason")
-        pastPrescriberColumn.cellValueFactory = PropertyValueFactory("prescriber")
-        pastHistoryNotesColumn.cellValueFactory = PropertyValueFactory("historyNotes")
-        pastReasonForStoppingColumn.cellValueFactory = PropertyValueFactory("reasonForStopping")
-        pastDateRangesColumn.cellValueFactory = PropertyValueFactory("dateRanges")
-        pastManufacturerColumn.cellValueFactory = PropertyValueFactory("manufacturer")
-
         // --- ENABLE INLINE EDITING FOR PAST MEDICATIONS TABLE ---
         pastMedicationsTable.isEditable = true   // Enable inline editing for Past Medications Table
+
+        // --- Enforce Double-Click for Editing (Past Meds) ---
+        // TODO: Add Double-Click enforcement for past medications table if desired
+        pastMedicationsTable.addEventFilter(MouseEvent.MOUSE_CLICKED) { event ->
+            if (pastMedicationsTable.isEditable && !event.isConsumed) {
+                val cell = event.target as? TableCell<*, *>
+                if (cell != null && cell.tableColumn != null) {
+                    if (event.clickCount == 1) {
+                        if (cell.tableColumn.isEditable) {
+                            // If it's a text cell and editable, consume the single click to prevent immediate edit
+                            if (cell is TextFieldTableCell<*, *>) {
+                                event.consume()
+                            }
+                            // TODO: Add checks for other cell types like custom date range cell if it becomes editable
+                        }
+                    }
+                }
+            }
+        }
+        // --- End Enforce Double-Click (Past Meds) ---
 
         // Set up inline editing using the setupStringInLineEditing extension function for past medications
         // This configures the cell factory and the onEditCommit handler for each column.
@@ -214,12 +270,8 @@ class MediChartController {
         pastPrescriberColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
             item.copy(prescriber = newValue.takeIf { it.isNotEmpty() })   // Define how to update prescriber
         }
-        // TODO: Add inline editing for past History Notes (TextArea) and Date Ranges (custom cell/dialog)
 
-        // Set up Surgeries Table Columns
-        surgeryNameColumn.cellValueFactory = PropertyValueFactory("name")
-        surgeryDateColumn.cellValueFactory = PropertyValueFactory("date")
-        surgerySurgeonColumn.cellValueFactory = PropertyValueFactory("surgeon")
+        // TODO: Add inline editing for past History Notes (TextArea) and Date Ranges (custom cell/dialog)
 
         // Load data into tables
         loadCurrentMedications()
@@ -232,7 +284,6 @@ class MediChartController {
      */
     private fun loadCurrentMedications() {
         val medications = dbManager.getAllCurrentMedications()
-        // Convert List to ObservableList for JavaFX TableView
         currentMedicationsData = FXCollections.observableArrayList(medications)
         currentMedicationsTable.items = currentMedicationsData  // Set the data to the table
     }
@@ -399,16 +450,95 @@ class MediChartController {
     }
 
     /**
+     * Handles the action of editing the selected past medication.
+     * Opens a dialog to edit past medication details.
+     * Added 5/3/25
+     */
+    @FXML
+    private fun handleEditPastMedication() {
+        println("Edit Past Medication button clicked.")
+        val selectedPastMed = pastMedicationsTable.selectionModel.selectedItem
+
+        if (selectedPastMed != null) {
+            println("Edit Past: ${selectedPastMed.brandName ?: selectedPastMed.genericName}")
+            try {
+                // --- Load the Edit Past Medication dialog FXML ---
+                val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/EditPastMedicationDialog.fxml"))
+                val dialogRoot = fxmlLoader.load<VBox>()
+                val dialogController = fxmlLoader.getController<EditPastMedicationController>()
+
+                val dialogStage = Stage()
+                dialogStage.title = "Edit Past Medication"
+                dialogStage.initModality(Modality.WINDOW_MODAL)
+                dialogStage.initOwner(pastMedicationsTable.scene.window)
+                val dialogScene = Scene(dialogRoot)
+
+                // Pass the Stage and DatabaseManager to the dialog controller's setup method
+                dialogController.setDialog(dialogStage, dbManager)
+
+                // Pass the selected Past Medication data to the dialog controller
+                dialogController.setPastMedicationData(selectedPastMed)
+
+                dialogStage.scene = dialogScene
+                dialogStage.showAndWait()
+
+                // --- Handle the results after the dialog is closed ---
+                // Check if the user clicked Save in the dialog
+                if (dialogController.isSavedSuccessful) {
+                    val updatedPastMedication = dialogController.pastMedicationData // Get the updated data from the dialog controller
+
+                    // Ensure the updated data was captured from the dialog
+                    if (updatedPastMedication != null) {
+                        // Call the DB update method for past medications
+                        dbManager.updatePastMedication(updatedPastMedication)
+
+                        loadPastMedications()
+
+                        // TODO: Add selection highlighting for the edited item after refresh?
+
+                        println("Past Medication updated successfully: ${updatedPastMedication.brandName ?: updatedPastMedication.genericName}")
+                    } else {
+                        println("Edit Past dialog cclosed, but no updated past medication data was captured (Save may have failed).")
+                    }
+                } else {
+                    println("Edit Past Medication dialog cancelled.")
+                }
+            } catch (e: IOException) {
+                System.err.println("Error loading Edit Past Medication dialog FXML: ${e.message}")
+                e.printStackTrace()
+                // TODO: Show an error message to the user
+                val alert = Alert(AlertType.ERROR)
+                alert.title = "Error Loading Dialog"
+                alert.headerText = "Could not load the edit dialog."
+                alert.contentText = "An error occurred while trying to open the edit window."
+                alert.initOwner(pastMedicationsTable.scene.window)
+                alert.showAndWait()
+            }
+        } else {
+            // TODO: Show a warning or information dialog to he user
+            println("No past medication selected for editing.")
+            val alert = Alert(AlertType.INFORMATION)
+            alert.title = "No Selection"
+            alert.headerText = null
+            alert.contentText = "Please select a past medication in the table to edit."
+            alert.initOwner(pastMedicationsTable.scene.window)
+            alert.showAndWait()
+        }
+    }
+
+    /**
      * Handles the action of archiving the selected current medication.
      * Moves the selected medication from the current list to the history list.
-     * Selects the item at the same index (or the last) after refreshes in the current table.
-     * EDITED: Added selection logic and call to loadPastMedications
+     * TODO: Add a dialog to capture ReasonForStopping
      */
     @FXML
     private fun handleArchiveMedication() {
         println("Archive Medication button clicked.")
         val selectedMed = currentMedicationsTable.selectionModel.selectedItem
+
         if (selectedMed != null) {
+            // TODO: Add confirmation dialog before archiving
+
             val selectedIndex = currentMedicationsTable.selectionModel.selectedIndex // Get index BEFORE refresh
 
             dbManager.archiveMedication(selectedMed)
@@ -429,6 +559,12 @@ class MediChartController {
         } else {
             // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
             println("No medication selected for archiving.")
+            val alert = Alert(AlertType.INFORMATION)
+            alert.title = "No Selection"
+            alert.headerText = null
+            alert.contentText = "Please select a current medication in the table to archive."
+            alert.initOwner(currentMedicationsTable.scene.window)
+            alert.showAndWait()
         }
     }
 
@@ -468,6 +604,12 @@ class MediChartController {
         } else {
             println("No medication selected for deletion.")
             // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
+            val alert = Alert(AlertType.INFORMATION)
+            alert.title = "No Selection"
+            alert.headerText = null
+            alert.contentText = "Please select a current medication in the table to delete."
+            alert.initOwner(currentMedicationsTable.scene.window)
+            alert.showAndWait()
         }
     }
 
@@ -482,6 +624,7 @@ class MediChartController {
     private fun handleUnarchiveMedication() {
         println("Unarchive Medication button clicked.")
         val selectedPastMed = pastMedicationsTable.selectionModel.selectedItem
+
         if (selectedPastMed != null) {
             val selectedIndex = pastMedicationsTable.selectionModel.selectedIndex   // Get index BEFORE refresh
 
@@ -499,8 +642,14 @@ class MediChartController {
                 pastMedicationsTable.selectionModel.clearSelection()
             }
         } else {
-            // TODO: Show a warning to the user
             println("No past medication selected for unarchiving.")
+            // TODO: Show warning dialog
+            val alert = Alert(AlertType.INFORMATION)
+            alert.title = "No Selection"
+            alert.headerText = null
+            alert.contentText = "Please select a past medication in the table to unarchive."
+            alert.initOwner(pastMedicationsTable.scene.window)
+            alert.showAndWait()
         }
     }
 
@@ -539,7 +688,28 @@ class MediChartController {
         } else {
             println("No past medication selected for deletion.")
             // TODO: Show a warning or information dialog to the user
+            val alert = Alert(AlertType.INFORMATION)
+            alert.title = "No Selection"
+            alert.headerText = null
+            alert.contentText = "Please select a past medication in the table to delete."
+            alert.initOwner(pastMedicationsTable.scene.window)
+            alert.showAndWait()
         }
+    }
+
+    /**
+     * Handles adding a new medication directly to the archive (Past Medications).
+     * TODO: Implement Add Past Medication dialog
+     */
+    @FXML
+    private fun handleAddPastMedication() {
+        println("Add to Archive button clicked. (TODO)")
+        val alert = Alert(AlertType.INFORMATION) // Placeholder
+        alert.title = "Add Past Medication (TODO)"
+        alert.headerText = null
+        alert.contentText = "Add Past Medication functionality is not yet implemented."
+        alert.initOwner(pastMedicationsTable.scene.window)
+        alert.showAndWait()
     }
 
     /**
@@ -553,6 +723,12 @@ class MediChartController {
         // TODO: Create a new Surgery object from input.
         // TODO: Call dbManager.addSurgery(newSurgeryObject).
         // TODO: Call loadSurgeries() to refresh the table.
+        val alert = Alert(AlertType.INFORMATION) // Placeholder
+        alert.title = "Add Surgery (TODO)"
+        alert.headerText = null
+        alert.contentText = "Add Surgery functionality is not yet implemented."
+        alert.initOwner(surgeriesTable.scene.window)
+        alert.showAndWait()
     }
 
     // --- Sorting Methods (Placeholder) ---
@@ -565,9 +741,16 @@ class MediChartController {
      * Note: TableView columns are sortable by default when clicking headers.
      * This method shows how programmatic sorting could be done.
      */
+    // @FXML
     @FXML
-    private fun handleSortByBrandName() { println("Sort by Brand Name clicked (TableView handles by default)") }
-    // TODO: Add handlers for sorting by Generic Name, Reason, Prescriber if separate buttons/menu items are desired
+    private fun handleSortByBrandName() {
+        println("Sort by Brand Name button clicked.")
+        // Use the items list and sort in memory
+        val sortedList = currentMedicationsTable.items.sortedWith(compareBy { it.brandName ?: "" }) // Handle null brand names for sorting
+        // Replace the current items with the sorted list
+        currentMedicationsTable.items.setAll(sortedList) // setAll clears and adds all, triggering table update
+        println("Table sorted by Brand Name.")
+    }
 
     // --- Reporting and Export Methods (Placeholder) ---
 
@@ -576,7 +759,15 @@ class MediChartController {
      * (Implementation needed - requires external libraries/JavaFX Printing API)
      */
     @FXML
-    private fun handlePrintCurrentMeds() { println("Print Current Medications clicked (Implementation needed)") }
+    private fun handlePrintCurrentMeds() {
+        println("Print Current Medications clicked (Implementation needed)")
+        val alert = Alert(AlertType.INFORMATION) // Placeholder
+        alert.title = "Print (TODO)"
+        alert.headerText = null
+        alert.contentText = "Print functionality is not yet implemented."
+        alert.initOwner(currentMedicationsTable.scene.window)
+        alert.showAndWait()
+    }
     // TODO: Implement printing logic (requires JavaFX Printing API or a library)
 
     /**
@@ -584,7 +775,15 @@ class MediChartController {
      * (Implementation needed - requires a PDF library like iText or PDFBox)
      */
     @FXML
-    private fun handleExportCurrentMedsPDF() { println("Export Current Medications PDF clicked (Implementation needed)") }
+    private fun handleExportCurrentMedsPDF() {
+        println("Export Current Medications PDF clicked (Implementation needed)")
+        val alert = Alert(AlertType.INFORMATION) // Placeholder
+        alert.title = "Export PDF (TODO)"
+        alert.headerText = null
+        alert.contentText = "Export to PDF functionality is not yet implemented."
+        alert.initOwner(currentMedicationsTable.scene.window)
+        alert.showAndWait()
+    }
     // TODO: Implement PDF export logic (requires a library like iText, Apache PDFBox)
 
     /**
@@ -592,7 +791,15 @@ class MediChartController {
      * (Implementation needed - requires a library like Apache POI)
      */
     @FXML
-    private fun handleExportCurrentMedsWord() { println("Export Current Medications Word clicked (Implementation needed)") }
+    private fun handleExportCurrentMedsWord() {
+        println("Export Current Medications Word clicked (Implementation needed)")
+        val alert = Alert(AlertType.INFORMATION) // Placeholder
+        alert.title = "Export Word (TODO)"
+        alert.headerText = null
+        alert.contentText = "Export to Word functionality is not yet implemented."
+        alert.initOwner(currentMedicationsTable.scene.window)
+        alert.showAndWait()
+    }
     // TODO: Implement Word export logic (requires a library like Apache POI)
 }
 
@@ -676,3 +883,54 @@ fun TableColumn<PastMedication, String>.setupStringInLineEditing(
         }
     }
 }
+
+// TODO: Add other extension functions for different cell types (TextArea, DatePicker) here later.
+// Example for DatePickerTableCell (requires implementing a custom cell factory):
+// fun TableColumn<Medication, LocalDate>.setupDatePickerInLineEditing(
+//     tableView: TableView<Medication>,
+//     dbManager: DatabaseManager,
+//     updateItem: (oldItem: Medication, newValue: LocalDate?) -> Medication
+// ) {
+//     this.cellFactory = Callback { DatePickerTableCell() } // Need a custom cell factory class or lambda
+//
+//     this.onEditCommit = EventHandler { event: CellEditEvent<Medication, LocalDate> ->
+//         val item = event.rowValue
+//         val newValue = event.newValue // This would be a LocalDate or null
+//
+//         val itemIndex = tableView.items.indexOf(item)
+//
+//         if (itemIndex >= 0) {
+//             val updatedItem = updateItem(item, newValue)
+//             tableView.items[itemIndex] = updatedItem
+//             dbManager.updateMedication(updatedItem)
+//             println("Inline date edit committed and database updated for Medication ID ${updatedItem.id}.")
+//         }
+//     }
+// }
+// Need a similar one for PastMedication if date fields are editable inline.
+
+
+// Example for TextAreaTableCell (requires implementing a custom cell factory):
+// fun TableColumn<Medication, String>.setupTextAreaInLineEditing(
+//     tableView: TableView<Medication>,
+//     dbManager: DatabaseManager,
+//     updateItem: (oldItem: Medication, newValue: String) -> Medication
+// ) {
+//    // Need a custom cell factory that returns a TableCell containing a TextArea
+//    this.cellFactory = Callback { TextAreaTableCell<Medication, String>() } // Need a custom cell factory class or lambda
+//    // onEditCommit handler would be similar to String editing
+//    this.onEditCommit = EventHandler { event: CellEditEvent<Medication, String> ->
+//         val item = event.rowValue
+//         val newValue = event.newValue
+//
+//         val itemIndex = tableView.items.indexOf(item)
+//
+//         if (itemIndex >= 0) {
+//             val updatedItem = updateItem(item, newValue)
+//             tableView.items[itemIndex] = updatedItem
+//             dbManager.updateMedication(updatedItem)
+//             println("Inline text area edit committed and database updated for Medication ID ${updatedItem.id}.")
+//         }
+//    }
+// }
+// Need a similar one for PastMedication historyNotes.
