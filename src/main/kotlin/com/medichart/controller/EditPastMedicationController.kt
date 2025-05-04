@@ -9,7 +9,7 @@ import javafx.scene.control.TextField
 import javafx.stage.Stage
 import javafx.scene.control.Alert
 import javafx.scene.control.Alert.AlertType
-import javafx.scene.control.ButtonType
+import javafx.scene.control.Button
 import javafx.scene.Scene
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
@@ -32,7 +32,8 @@ class EditPastMedicationController {
     @FXML lateinit var prescriberField: TextField
     @FXML lateinit var historyNotesArea: TextArea
     @FXML lateinit var reasonForStoppingField: TextField
-    @FXML lateinit var dateRangesField: TextField    // For the date range; for now, using text field
+    // @FXML lateinit var dateRangesField: TextField    // For the date range; for now, using text field
+    @FXML lateinit var editDateRangesButton: Button
     @FXML lateinit var manufacturerField: TextField
 
     // Properties to hold the result of the dialog
@@ -43,13 +44,10 @@ class EditPastMedicationController {
         private set // Make setter private
 
     private var originalPastMedication: PastMedication? = null  // Holds the original Medication object being edited, including its ID
+    private var dialogStage: Stage? = null  // Keep a reference to the dialog stage
+    private var dbManager: DatabaseManager? = null  // Reference to the DatabaseManager (passed from the main controller)
 
-    // Keep a reference to the dialog stage
-    private var dialogStage: Stage? = null
-
-    // Reference to the DatabaseManager (passed from the main controller)
-    private var dbManager: DatabaseManager? = null
-
+    private var editedDateRanges: List<PastMedication.DateRange>? = null  // Property to hold the list of date ranges being edited
     /**
      * Called by FXMLLoader after the FXML is loaded.
      * Initializes the dialog elements.
@@ -118,8 +116,8 @@ class EditPastMedicationController {
         reasonField.text = pastMedication.reason ?: ""
         prescriberField.text = pastMedication.prescriber ?: ""
         historyNotesArea.text = pastMedication.historyNotes ?: ""
-        // Serialize the List<DateRange> to a string using the helper from dbManager
-        dateRangesField.text = dbManager?.serializeDateRanges(pastMedication.dateRanges) ?: ""
+        reasonForStoppingField.text = pastMedication.reasonForStopping ?: ""
+        editedDateRanges = pastMedication.dateRanges
         manufacturerField.text = pastMedication.manufacturer ?: ""
         // --- End Populate form fields ---
     }
@@ -155,12 +153,13 @@ class EditPastMedicationController {
         val updatedPrescriber = prescriberField.text.trim().takeIf { it.isNotEmpty() }
         val updatedHistoryNotes = historyNotesArea.text.trim().takeIf { it.isNotEmpty() } // Use .text for TextArea
         val updatedReasonForStopping = reasonForStoppingField.text.trim().takeIf { it.isNotEmpty() }
-        val dateRangesString = dateRangesField.text.trim()
         val updatedManufacturer = manufacturerField.text.trim().takeIf { it.isNotEmpty() }
         // --- End Capture from form fields ---
 
-        // --- Deserialize Date Ranges and Create Updated PastMedication object ---
-        val updatedDateRanges = dbManager?.deserializeDateRanges(dateRangesString) ?: emptyList()
+        // --- Create Updated PastMedication object using the stored List<DateRange> ---
+        // Use the editedDateRanges property that was populated in setPastMedicationData
+        // or updated by the handleEditDateRanges method.
+        val finalDateRanges = editedDateRanges ?: emptyList()   // Use the stored list, default to empty if somehow null
 
         // --- Create an UPDATED Medication object using the originalMedication.id and copied/updated fields ---
         // Ensure originalMedication is not null before accessing its ID
@@ -175,14 +174,12 @@ class EditPastMedicationController {
             prescriber = updatedPrescriber,
             historyNotes = updatedHistoryNotes,
             reasonForStopping = updatedReasonForStopping,
-            dateRanges = updatedDateRanges,
+            dateRanges = finalDateRanges,
             manufacturer = updatedManufacturer
         )
         // --- End Create Updated Object ---
 
-        // Signal that the save was successful *only after* data is successfully captured/object created
-        isSavedSuccessful = true
-
+        isSavedSuccessful = true    // Signal that the save was successful *only after* data is successfully captured/object created
         closeDialog()   // Close the dialog window
     }
 
@@ -219,5 +216,27 @@ class EditPastMedicationController {
         alert.headerText = header
         alert.contentText = content
         alert.showAndWait() // Show the alert and wait for the user to close it
+    }
+
+    /**
+     * Handles the action when the "Edit Date Ranges..." button is clicked.
+     * TODO: Implement logic to open a dialog for editing the list of Date Ranges
+     */
+    @FXML
+    private fun handleEditDateRanges() {
+        println("Edit Date Ranges button clicked. (TODO)")
+        // TODO: Implement logic to open the Edit Date Range dialog:
+        // 1. Load EditDateRangeDialog.fxml
+        // 2. Get EditDateRangeController
+        // 3. Create new Stage fro the dialog
+        // 4. Pass the current list of date ranges (editedDateRanges) to the dialog controller's setDateRangesData method
+        // 5. Show the dialog and wait for result
+        // 6. If dialog saved successfully, get the updated list from the dialog controller and store it in editedDateRanges
+        val alert = Alert(AlertType.INFORMATION)
+        alert.title = "Edit Date Ranges (TODO)"
+        alert.headerText = null
+        alert.contentText = "Date Range editing dialog is not yet implemented.\nCurrent Date Ranges: ${dbManager?.serializeDateRanges(editedDateRanges) ?: "None"}"
+        alert.initOwner(dialogStage)
+        alert.showAndWait()
     }
 }

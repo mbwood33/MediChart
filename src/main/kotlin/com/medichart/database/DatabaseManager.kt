@@ -230,12 +230,25 @@ class DatabaseManager {
      * @param med The Medication object to archive.
      */
     fun archiveMedication(med: Medication) {
-        // Basic Implementation: Insert into past_meds, then delete from current_meds
-        val insertSql = "INSERT INTO past_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
-
+        // TODO: Transaction Management - Wrap delete and insert in a transaction for atomicity
         connect()?.use { conn ->
             try {
                 conn.autoCommit = false // Start transaction
+
+                // Delete from current_meds
+                val deleteSql = "DELETE FROM current_meds WHERE id = ?;"
+                conn.prepareStatement(deleteSql).use { pstmt ->
+                    pstmt.setInt(1, med.id)
+                    pstmt.executeUpdate()
+                }
+
+                // Add to past_meds
+                val insertSql = """
+                    INSERT INTO past_meds (
+                        generic_name, brand_name, dosage, dose_form, instructions,
+                        reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                """.trimIndent()
 
                 // Prepare the INSERT statement
                 conn.prepareStatement(insertSql).use { pstmt ->
@@ -246,26 +259,19 @@ class DatabaseManager {
                     pstmt.setString(5, med.instructions)
                     pstmt.setString(6, med.reason)
                     pstmt.setString(7, med.prescriber)
-                    pstmt.setString(8, med.notes) // Copy current notes to history_notes initially
-                    // Set reason_for_stopping (placeholder - will be set later, e.g., in an Edit History dialog)
-                    pstmt.setString(9, "")
-                    // Convert LocalDate startDate to String (YYYY-MM-DD) for the placeholder date_ranges string
-                    pstmt.setString(10, med.startDate?.toString()?.let { "$it to Present" } ?: "Unknown Start to Present") // Simple date range representation
+                    // Placeholders for past_meds specific fields - TODO: Capture these from UI if needed
+                    pstmt.setString(8, med.notes)   // Using current notes as history notes for now
+                    pstmt.setString(9, "Archived by user")  // Placeholder reason for stopping
+                    val initialDateRange = DateRange(med.startDate, LocalDate.now())
+                    pstmt.setString(10, serializeDateRanges(listOf(initialDateRange)))
                     pstmt.setString(11, med.manufacturer)
 
                     pstmt.executeUpdate()
                     // System.out.println("Medication archived to history (insert step): ${med.brandName}") // Optional: for debugging
                 }
 
-                // Delete from current_meds
-                val deleteSql = "DELETE FROM current_meds WHERE id = ?"
-                conn.prepareStatement(deleteSql).use { pstmt ->
-                    pstmt.setInt(1, med.id)
-                    pstmt.executeUpdate()
-                    // System.out.println("Medication archived from current (delete step): ${med.brandName}") // Optional: for debugging
-                }
-
                 conn.commit() // Commit transaction
+                println("Medication ID ${med.id} archived successfully.")
 
             } catch (e: SQLException) {
                 System.err.println("Error archiving medication: ${e.message}")
@@ -511,8 +517,8 @@ class DatabaseManager {
             return null
         }
         // Simple JSON array format: [{"startDate":"YYYY-MM-DD", "endDate":"YYYY-MM-DD"}, ...]
-        return dateRanges.joinToString(prefix = "[", separator = ",", postfix = "]") { range ->
-            """{"startDate":"${range.startDate?.toString() ?: ""}", "endDate":"${range.endDate?.toString() ?: ""}"}"""
+        return dateRanges.joinToString(";") { range ->
+            "${range.startDate?.toString() ?: ""}_${range.endDate?.toString() ?: ""}"
         }
     }
 
@@ -521,30 +527,21 @@ class DatabaseManager {
      * Parses the simple JSON string format back to a List<DateRange>
      */
     public fun deserializeDateRanges(dateRangesString: String?): List<DateRange> {
-        if (dateRangesString.isNullOrBlank() || dateRangesString == "[]") {
+        if (dateRangesString.isNullOrBlank()) {
             return emptyList()
         }
         val ranges = mutableListOf<DateRange>()
-        // Attempt to parse the JSON string - Basic parsing, could be enhanced with a library
-        val rangeStrings = dateRangesString.substring(1, dateRangesString.length - 1).split("}.{")
+        val rangeStrings = dateRangesString.split(";")  // Split by ';' to get individual range strings
 
         for (rangeStr in rangeStrings) {
-            try {
-                val cleanRangeStr = if (rangeStrings.size > 1) "{$rangeStr}" else rangeStr
-                val startDateMatch = Regex("""startDate":"([^"]*)""").find(cleanRangeStr)
-                val endDateMatch = Regex("""endDate":"([^"]*)""").find(cleanRangeStr)
+            val dates = rangeStr.split("_")
+            val startDateStr = dates.getOrNull(0) ?: ""
+            val endDateStr = dates.getOrNull(1) ?: ""
 
-                val startDateStr = startDateMatch?.groupValues?.getOrNull(1) ?: ""
-                val endDateStr = endDateMatch?.groupValues?.getOrNull(1) ?: ""
+            val startDate = try { LocalDate.parse(startDateStr).takeIf { startDateStr.isNotBlank() } } catch (e: DateTimeParseException) { null }
+            val endDate = try { LocalDate.parse(endDateStr).takeIf { endDateStr.isNotBlank() } } catch (e: DateTimeParseException) { null }
 
-                val startDate = try { LocalDate.parse(startDateStr).takeIf { startDateStr.isNotBlank() } } catch (e: DateTimeParseException) { null }
-                val endDate = try { LocalDate.parse(endDateStr).takeIf { endDateStr.isNotBlank() } } catch (e: DateTimeParseException) { null }
-
-                ranges.add(DateRange(startDate, endDate))
-            } catch (e: Exception) {
-                System.err.println("Error parsing date range string: '$rangeStr'. ${e.message}")
-                // Continue with other ranges
-            }
+            ranges.add(DateRange(startDate, endDate))
         }
         return ranges
     }

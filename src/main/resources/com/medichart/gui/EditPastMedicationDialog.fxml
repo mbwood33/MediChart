@@ -38,8 +38,12 @@
                 <TextField fx:id="prescriberField" promptText="e.g., Dr. Smith" GridPane.columnIndex="1" GridPane.rowIndex="6" />
                 <TextArea fx:id="historyNotesArea" prefHeight="80.0" promptText="Any additional notes" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="7" />
                 <TextField fx:id="reasonForStoppingField" promptText="e.g., side effects, wasn't working, etc." GridPane.columnIndex="1" GridPane.rowIndex="8" />
-                <!-- For now, using TextField for dateRanges -->
-                <TextField fx:id="dateRangesField" promptText="e.g., 2024-01-05" GridPane.columnIndex="1" GridPane.rowIndex="9" />
+                <HBox alignment="CENTER_LEFT" spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="9">
+                    <children>
+                        <Label text="[Click button to edit]" />
+                        <Button text="Edit Date Ranges..." onAction="#handleEditDateRanges" fx:id="editDateRangesButton" />
+                    </children>
+                </HBox>
                 <TextField fx:id="manufacturerField" promptText="e.g., Pfizer" GridPane.columnIndex="1" GridPane.rowIndex="10" />
             </children>
         </GridPane>
