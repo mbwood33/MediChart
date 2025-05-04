@@ -105,7 +105,11 @@ class DatabaseManager {
      * @param med The Medication object to add. Note: id is ignored for insertion as it's AUTOINCREMENT.
      */
     fun addMedication(med: Medication) {
-        val sql = "INSERT INTO current_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, notes, start_date, manufacturer) VALUES(?,?,?,?,?,?,?,?,?,?)"
+        val sql = """
+            INSERT INTO current_meds(
+                generic_name, brand_name, dosage, dose_form, instructions,
+                reason, prescriber, notes, start_date, manufacturer
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
         connect()?.use { conn ->
             conn.prepareStatement(sql).use { pstmt ->
@@ -124,6 +128,45 @@ class DatabaseManager {
                 // System.out.println("Medication added: ${med.brandName}") // Optional: for debugging
             }
         } ?: System.err.println("Failed to connect to database to add medication.")
+    }
+
+    /**
+     * Adds a new PastMedication record to the database.
+     * The ID of the PastMedication object is typically ignored as the database assigns a new one.
+     * @param pastMedication The PastMedication object to add
+     */
+    fun addPastMedication(pastMedication: PastMedication) {
+        val insertSql = """
+            INSERT INTO past_meds (
+                generic_name, brand_name, dosage, dose_form, instructions,
+                reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """.trimIndent()
+
+        connect()?.use { conn ->
+            try {
+                conn.prepareStatement(insertSql).use { pstmt ->
+                    pstmt.setString(1, pastMedication.genericName)
+                    pstmt.setString(2, pastMedication.brandName)
+                    pstmt.setString(3, pastMedication.dosage)
+                    pstmt.setString(4, pastMedication.doseForm)
+                    pstmt.setString(5, pastMedication.instructions)
+                    pstmt.setString(6, pastMedication.reason)
+                    pstmt.setString(7, pastMedication.prescriber)
+                    pstmt.setString(8, pastMedication.historyNotes)
+                    pstmt.setString(9, pastMedication.reasonForStopping)
+                    pstmt.setString(10, serializeDateRanges(pastMedication.dateRanges))
+                    pstmt.setString(11, pastMedication.manufacturer)
+
+                    pstmt.executeUpdate()
+                    println("New Past Medication added to database.")
+                }
+            } catch (e: SQLException) {
+                System.err.println("Error adding new past medication to database: ${e.message}")
+                e.printStackTrace()
+                // TODO: Handle error appropriately in the UI (e.g., showing an error dialog to the user)
+            }
+        } ?: System.err.println("Failed to add past medication: Could not get database connection.")
     }
 
     /**

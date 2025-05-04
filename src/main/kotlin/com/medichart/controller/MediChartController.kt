@@ -699,17 +699,57 @@ class MediChartController {
 
     /**
      * Handles adding a new medication directly to the archive (Past Medications).
-     * TODO: Implement Add Past Medication dialog
      */
     @FXML
     private fun handleAddPastMedication() {
         println("Add to Archive button clicked. (TODO)")
-        val alert = Alert(AlertType.INFORMATION) // Placeholder
-        alert.title = "Add Past Medication (TODO)"
-        alert.headerText = null
-        alert.contentText = "Add Past Medication functionality is not yet implemented."
-        alert.initOwner(pastMedicationsTable.scene.window)
-        alert.showAndWait()
+        try {
+            val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/AddPastMedicationDialog.fxml"))
+            val dialogRoot = fxmlLoader.load<VBox>()
+            val dialogController = fxmlLoader.getController<AddPastMedicationController>()
+
+            val dialogStage = Stage()
+            dialogStage.title = "Add Past Medication"
+            dialogStage.initModality(Modality.WINDOW_MODAL)
+            dialogStage.initOwner(pastMedicationsTable.scene.window)
+            val dialogScene = Scene(dialogRoot)
+            dialogStage.scene = dialogScene
+
+            dialogController.setupDialog(dialogStage, dbManager)
+
+            dialogStage.showAndWait()
+
+            if (dialogController.isSavedSuccessful) {
+                val newPastMedication = dialogController.pastMedicationData
+
+                if (newPastMedication != null) {
+                    dbManager.addPastMedication(newPastMedication)
+                    loadPastMedications()
+
+                    // Optional: Add selection highlighting for the newly added item after refresh?
+                    // This requires retrieving the item from the database after loading, which
+                    // might involve finding it by generic name or another unique identifier if ID wasn't set on add.
+                    // For simplicity, we just reload and don't auto-select for now.
+
+                    println("New Past Medication added: ${newPastMedication.brandName ?: newPastMedication.genericName}")
+                } else {
+                    println("Add Past dialog closed, but no past medication data was captured.")
+                }
+            } else {
+                println("Add Past Medication dialog cancelled.")
+            }
+        } catch (e: IOException) {
+            // Handle potential errors during FXML loading (e.g., file not found, FXML syntax error)
+            System.err.println("Error loading Add Past Medication dialog FXML: ${e.message}")
+            e.printStackTrace() // Print stack trace for debugging
+            // Show an error message to the user (using a helper function if available)
+            val alert = Alert(AlertType.ERROR)
+            alert.title = "Error Loading Dialog"
+            alert.headerText = "Could not load the add dialog."
+            alert.contentText = "An error occurred while trying to open the add window."
+            alert.initOwner(pastMedicationsTable.scene.window)
+            alert.showAndWait()
+        }
     }
 
     /**

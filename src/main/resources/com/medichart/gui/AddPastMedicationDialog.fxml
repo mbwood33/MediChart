@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.DatePicker?>
+
+<?import javafx.scene.layout.ColumnConstraints?>
+<VBox spacing="10.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/23" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.medichart.controller.AddPastMedicationController">
+    <padding>
+        <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+    </padding>
+    <children>
+        <GridPane hgap="10.0" vgap="10.0">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="150.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="300.0" />
+            </columnConstraints>
+            <children>
+                <Label text="Generic Name:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                <TextField fx:id="genericNameField" promptText="e.g., Ibuprofen" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                <Label text="Brand Name:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                <TextField fx:id="brandNameField" promptText="e.g., Advil" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                <Label text="Dosage:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                <TextField fx:id="dosageField" promptText="e.g., 200 mg" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                <Label text="Dosage Form:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                <TextField fx:id="doseFormField" promptText="e.g., Tablet" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                <Label text="Instructions:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                <TextField fx:id="instructionsField" promptText="e.g., Take with food" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+                <Label text="Reason:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                <TextField fx:id="reasonField" promptText="e.g., Headache" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+
+                <Label text="Prescriber:" GridPane.columnIndex="0" GridPane.rowIndex="6" />
+                <TextField fx:id="prescriberField" promptText="e.g., Dr. Smith" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+
+                <Label text="History Notes:" GridPane.columnIndex="0" GridPane.rowIndex="7" />
+                <TextArea fx:id="historyNotesArea" prefHeight="80.0" promptText="Any additional notes" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+
+                <Label text="Reason for Stopping:" GridPane.columnIndex="0" GridPane.rowIndex="8" />
+                <TextField fx:id="reasonForStoppingField" promptText="e.g., side effects, wasn't working, etc." GridPane.columnIndex="1" GridPane.rowIndex="8" />
+
+                <Label text="Date Ranges:" GridPane.columnIndex="0" GridPane.rowIndex="9" />
+                <HBox alignment="CENTER_LEFT" spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="9">
+                    <children>
+                        <Label text="[Click button to edit]" fx:id="dateRangesSummaryLabel" />
+                        <Button text="Edit Date Ranges..." onAction="#handleEditDateRanges" fx:id="editDateRangesButton" />
+                    </children>
+                </HBox>
+
+                <Label text="Manufacturer:" GridPane.columnIndex="0" GridPane.rowIndex="10" />
+                <TextField fx:id="manufacturerField" promptText="e.g., Pfizer" GridPane.columnIndex="1" GridPane.rowIndex="10" />
+            </children>
+        </GridPane>
+
+        <HBox alignment="CENTER_RIGHT" spacing="10.0">
+            <children>
+                <Button mnemonicParsing="false" onAction="#handleSaveButton" text="Save" defaultButton="true" fx:id="saveButton" />
+                <Button mnemonicParsing="false" onAction="#handleCancelButton" text="Cancel" cancelButton="true" fx:id="cancelButton" />
+            </children>
+        </HBox>
+    </children>
+</VBox>
