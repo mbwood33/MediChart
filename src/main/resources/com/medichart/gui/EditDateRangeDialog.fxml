@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="10.0" prefHeight="300.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/23" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.medichart.controller.EditDateRangeController">
+    <padding>
+        <Insets topRightBottomLeft="15.0" />
+    </padding>
+    <children>
+        <Label text="Edit Date Ranges" style="-fx-font-size: 16pt; -fx-font-weight: bold;" /> <TableView fx:id="dateRangesTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="startDateColumn" text="Start Date" prefWidth="150"/>
+            <TableColumn fx:id="endDateColumn" text="End Date" prefWidth="150"/>
+        </columns>
+        <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+    </TableView>
+
+        <HBox spacing="10.0" alignment="CENTER_LEFT">
+            <children>
+                <Button text="Add Range" onAction="#handleAddRange" fx:id="addRangeButton"/>
+                <Button text="Edit Selected" onAction="#handleEditRange" fx:id="editRangeButton"/>
+                <Button text="Remove Selected" onAction="#handleRemoveRange" fx:id="removeRangeButton"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Button text="Save" onAction="#handleSaveButton" defaultButton="true"/>
+                <Button text="Cancel" onAction="#handleCancelButton" cancelButton="true"/>
+            </children>
+        </HBox>
+    </children>
+</VBox>

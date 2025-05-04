@@ -4,6 +4,7 @@ import com.medichart.database.DatabaseManager
 import com.medichart.model.PastMedication
 import com.medichart.model.PastMedication.DateRange
 import javafx.fxml.FXML
+import javafx.fxml.FXMLLoader
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
 import javafx.stage.Stage
@@ -14,6 +15,9 @@ import javafx.scene.Scene
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.control.DatePicker
+import javafx.scene.layout.VBox
+import javafx.stage.Modality
+import java.io.IOException
 import java.time.LocalDate
 
 /**
@@ -219,24 +223,91 @@ class EditPastMedicationController {
     }
 
     /**
+     * Helper function to load an FXML file, create a modal dialog stage, and return the controller and stage.
+     * Sets the owner of the dialog to the current dialog stage and modality.
+     * This is used by handler methods within THIS controller to open other dialogs.
+     * @param fxmlPath The path to the FXML file (e.g., "/com/medichart/gui/EditDateRangeDialog.fxml").
+     * @param title The title for the dialog window.
+     * @return A Pair of the loaded controller and the dialog Stage, or null if loading fails.
+     */
+    private fun <T> loadNestedDialog(fxmlPath: String, title: String): Pair<T, Stage>? {
+        try {
+            val fxmlLoader = FXMLLoader(javaClass.getResource(fxmlPath))
+            val dialogRoot = fxmlLoader.load<VBox>()
+            val controller = fxmlLoader.getController<T>()
+
+            val dialogStage = Stage()
+            dialogStage.title = title
+            dialogStage.initModality(Modality.WINDOW_MODAL)
+            dialogStage.initOwner(this.dialogStage)
+            val dialogScene = Scene(dialogRoot)
+            dialogStage.scene = dialogScene
+
+            return Pair(controller, dialogStage)
+        } catch (e: IOException) {
+            System.err.println("Error loading nested dialog FXML: $fxmlPath - ${e.message}")
+            e.printStackTrace()
+            showAlert(AlertType.ERROR, "Error Loading Dialog", "Could not load the editor dialog.", "An error occurred while opening the editor.")
+            return null
+        }
+    }
+
+    /**
      * Handles the action when the "Edit Date Ranges..." button is clicked.
-     * TODO: Implement logic to open a dialog for editing the list of Date Ranges
+     * Opens a dialog for editing the list of Date Ranges.
      */
     @FXML
     private fun handleEditDateRanges() {
-        println("Edit Date Ranges button clicked. (TODO)")
-        // TODO: Implement logic to open the Edit Date Range dialog:
-        // 1. Load EditDateRangeDialog.fxml
-        // 2. Get EditDateRangeController
-        // 3. Create new Stage fro the dialog
-        // 4. Pass the current list of date ranges (editedDateRanges) to the dialog controller's setDateRangesData method
-        // 5. Show the dialog and wait for result
-        // 6. If dialog saved successfully, get the updated list from the dialog controller and store it in editedDateRanges
-        val alert = Alert(AlertType.INFORMATION)
-        alert.title = "Edit Date Ranges (TODO)"
-        alert.headerText = null
-        alert.contentText = "Date Range editing dialog is not yet implemented.\nCurrent Date Ranges: ${dbManager?.serializeDateRanges(editedDateRanges) ?: "None"}"
-        alert.initOwner(dialogStage)
-        alert.showAndWait()
+        println("Edit Date Ranges button clicked.")
+        // Use the helper to load the date range editor dialog FXML and get controller/stage
+        // We expect the controller to be of type EditDateRangeController
+        val dialogInfo = loadNestedDialog<EditDateRangeController>(
+            // Ensure the FXML path matches the file created in Step 13.1
+            "/com/medichart/gui/EditDateRangeDialog.fxml",
+            "Edit Date Ranges" // Title for the Edit Date Range list dialog
+        )
+
+        // Check if the dialog was loaded successfully
+        if (dialogInfo != null) {
+            val dialogController = dialogInfo.first // Get the controller (EditDateRangeController)
+            val dialogStage = dialogInfo.second // Get the stage
+
+            // Call setup and set data BEFORE showing the dialog
+            // Ensure EditDateRangeController has public methods setupDialog(Stage, DatabaseManager) and setDateRangesData(List<DateRange>?)
+            // The setupDialog method in EditDateRangeController needs the Stage and the DatabaseManager instance.
+            // We have the Stage from loadNestedDialog, and dbManager is a property in *this* controller.
+            dialogController.setupDialog(dialogStage, dbManager!!) // <-- Call setupDialog and pass Stage and dbManager
+
+            // Pass the current list of date ranges (from the editedDateRanges property) to the list editor controller
+            dialogController.setDateRangesData(editedDateRanges) // <-- Pass the list to EditDateRangeController
+
+            // Show the nested dialog and wait for it to be closed by the user
+            dialogStage.showAndWait()
+
+            // --- Handle the results after the nested dialog is closed ---
+            // Check if the user clicked Save in the nested (EditDateRangeDialog) dialog
+            if (dialogController.isSavedSuccessful) {
+                // Get the updated list of date ranges from the nested dialog controller
+                val updatedDateRanges = dialogController.editedDateRanges
+
+                // Store the updated list in the editedDateRanges property of *this* controller.
+                // This list will be used by handleSaveButton when the main Edit Past Medication dialog is saved.
+                editedDateRanges = updatedDateRanges
+
+                println("Date Ranges updated in editor: ${dbManager?.serializeDateRanges(editedDateRanges)}")
+
+                // Optional: Update the label next to the button in the main Edit Past Medication dialog
+                // to show a summary of the ranges (e.g., "3 ranges" or the serialized string).
+                // Requires an @FXML Label next to the button and updating its text here.
+                // e.g. dateRangesSummaryLabel.text = "Ranges: ${updatedDateRanges?.size ?: 0}" // Need the label @FXML var
+            } else {
+                // This runs if the user cancelled or closed the nested dialog.
+                // The editedDateRanges property remains unchanged, which is the desired behavior.
+                println("Date Range Editor dialog cancelled or failed.")
+            }
+        } else {
+            // This runs if loadNestedDialog returned null (FXML loading failed)
+            println("Failed to load the Date Range Editor dialog.")
+        }
     }
 }
