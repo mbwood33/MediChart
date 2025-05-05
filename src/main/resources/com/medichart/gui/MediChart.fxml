@@ -5,7 +5,21 @@
 <?import java.util.List?>
 <?import com.medichart.model.PastMedication.DateRange?>
 
+
 <BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/23" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.medichart.controller.MediChartController">
+    <top>
+        <MenuBar BorderPane.alignment="CENTER">
+            <menus>
+                <Menu text="File">
+                    <items>
+                        <MenuItem mnemonicParsing="false" onAction="#handlePrintCurrentMeds" text="Print Current Medications" />
+                        <MenuItem mnemonicParsing="false" onAction="#handleExportCurrentMedsCSV" text="Export Current Medications to CSV" />
+                        <MenuItem mnemonicParsing="false" onAction="#handleExportCurrentMedsPDF" text="Export Current Medications to PDF" />
+                    </items>
+                </Menu>
+            </menus>
+        </MenuBar>
+    </top>
     <center>
         <TabPane prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
             <tabs>
@@ -43,13 +57,15 @@
                                                 <Button mnemonicParsing="false" onAction="#handleSortByBrandName" text="Brand Name" />
                                             </children>
                                         </HBox>
+                                        <!--
                                         <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
                                             <children>
                                                 <Button mnemonicParsing="false" onAction="#handlePrintCurrentMeds" text="Print Table" />
                                                 <Button mnemonicParsing="false" onAction="#handleExportCurrentMedsPDF" text="Export to PDF" />
-                                                <Button mnemonicParsing="false" onAction="#handleExportCurrentMedsWord" text="Export to Word" />
+                                                <Button mnemonicParsing="false" onAction="#handleExportCurrentMedsCSV" text="Export to CSV" />
                                             </children>
                                         </HBox>
+                                        -->
                                     </children>
                                 </VBox>
                             </children>

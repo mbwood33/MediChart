@@ -33,6 +33,9 @@ import javafx.beans.property.SimpleObjectProperty   // Might be needed for DateP
 import javafx.beans.binding.Bindings    // Might be needed for complex cell value factories
 import javafx.scene.control.Button
 import javafx.scene.layout.Region   // If Region is used in FXML HBoxes
+import javafx.stage.FileChooser
+import java.io.BufferedWriter
+import java.io.FileWriter
 
 /**
  * Controller class for the main MediChart GUI.
@@ -90,7 +93,7 @@ class MediChartController {
     // @FXML lateinit var sortBrandNameButton: Button // Add this if you added fx:id="sortBrandNameButton"
     // @FXML lateinit var printCurrentMedsButton: Button // Add this if you added fx:id
     // @FXML lateinit var exportCurrentMedsPdfButton: Button // Add this if you added fx:id
-    // @FXML lateinit var exportCurrentMedsWordButton: Button // Add this if you added fx:id
+
     // @FXML lateinit var addSurgeryButton: Button // Add this if you added fx:id
 
     private lateinit var currentMedicationsData: ObservableList<Medication>
@@ -800,7 +803,7 @@ class MediChartController {
      */
     @FXML
     private fun handlePrintCurrentMeds() {
-        println("Print Current Medications clicked (Implementation needed)")
+        println("Print Current Medications menu item clicked. (Implementation needed)")
         val alert = Alert(AlertType.INFORMATION) // Placeholder
         alert.title = "Print (TODO)"
         alert.headerText = null
@@ -816,7 +819,7 @@ class MediChartController {
      */
     @FXML
     private fun handleExportCurrentMedsPDF() {
-        println("Export Current Medications PDF clicked (Implementation needed)")
+        println("Export Current Medications PDF menu item clicked (Implementation needed)")
         val alert = Alert(AlertType.INFORMATION) // Placeholder
         alert.title = "Export PDF (TODO)"
         alert.headerText = null
@@ -827,20 +830,117 @@ class MediChartController {
     // TODO: Implement PDF export logic (requires a library like iText, Apache PDFBox)
 
     /**
-     * Handles exporting the current medication table to Word.
-     * (Implementation needed - requires a library like Apache POI)
+     * Handles exporting the current medications table to a CSV file.
+     * Opens a file chooser dialog for the user to select a save location.
      */
     @FXML
-    private fun handleExportCurrentMedsWord() {
-        println("Export Current Medications Word clicked (Implementation needed)")
-        val alert = Alert(AlertType.INFORMATION) // Placeholder
-        alert.title = "Export Word (TODO)"
-        alert.headerText = null
-        alert.contentText = "Export to Word functionality is not yet implemented."
-        alert.initOwner(currentMedicationsTable.scene.window)
-        alert.showAndWait()
+    private fun handleExportCurrentMedsCSV() {
+        println("Export Current Medications CSV menu item clicked.")
+
+        val fileChooser = FileChooser()
+        fileChooser.title = "Export Current Medications to CSV"
+        fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("CSV files (*.csv)", "*.csv"))
+        fileChooser.initialFileName = "current_medications_${LocalDate.now()}.csv"
+
+        val file = fileChooser.showSaveDialog(currentMedicationsTable.scene.window) // Set owner window
+
+        // Check if the user selected a file (didn't cancel)
+        if (file != null) {
+            val data = currentMedicationsTable.items    // Get the data from the TableView's items list
+
+            if (data.isEmpty()) {
+                showAlert(AlertType.INFORMATION, "Export Failed", "No Data to Export", "The Current Medications table is empty. Nothing was exported.")
+                return  // Exit the method if no data
+            }
+
+            try {
+                // Use a BufferedWriter and FileWriter to write to the file efficiently
+                // The use{} block ensures the writer and underlying stream are closed automatically.
+                BufferedWriter(FileWriter(file)).use { writer ->
+                    // Write CSV Header Row based on the columns you want to include.
+                    // Define the desired header fields here
+                    val header = listOf(
+                        "Brand Name", "Generic Name", "Dosage", "Dose Form",
+                        "Instructions", "Reason", "Prescriber", "Start Date",
+                        "Notes", "Manufacturer"
+                    )
+
+                    // Write Data Rows
+                    data.forEach { medication ->
+                        // Extract data for each column from the Medication object
+                        // Use toString() for LocalDate? and handle nulls by passing null to escapeCsvField
+                        val rowData = listOf(
+                            medication.brandName,
+                            medication.genericName, // Non-nullable String
+                            medication.dosage,
+                            medication.doseForm,
+                            medication.instructions,
+                            medication.reason,
+                            medication.prescriber,
+                            medication.startDate?.toString(),   // Convert LocalDate? to String?
+                            medication.notes,
+                            medication.manufacturer
+                        )
+                        // Join row data with commas, escape fields, and write the data line
+                        writer.write(rowData.joinToString(",") {field -> escapeCsvField(field) })
+                        writer.newLine()    // Write a newLine character
+                    }
+
+                    println("Current Medications dat exported successfully to ${file.absolutePath}")
+                    showAlert(AlertType.INFORMATION, "Export Successful", "Export Complete", "Current Medications data has been successfully exported to:\n${file.absolutePath}")
+
+                }
+            } catch (e: IOException) {
+                System.err.println("Error writing CSV file: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Error Writing File", "An error occurred while writing the CSV file:\n${e.message}")
+            } catch (e: Exception) {
+                System.err.println("An unexpected error occurred during CSV export: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Unexpected Error", "An unexpected error occurred during the export process:\n${e.message}")
+            }
+        } else {
+            println("CSV export cancelled by user.")
+        }
     }
-    // TODO: Implement Word export logic (requires a library like Apache POI)
+
+    /**
+     * Helper function to properly escape a string field for CSV writing
+     * Handles fields containing commas, double quotes, or newlines by enclosing them in double quotes.
+     * Double quotes within the field are escaped by doubling them (" becomes "").
+     * Handles null input values by treating them as empty strings.
+     * @param field The string value to escape. Can be null.
+     * @return The escaped string suitable for CSV
+     */
+    private fun escapeCsvField(field: String?): String {
+        val value = field ?: "" // Treat null values as empty strings for export
+        // Check if the field needs to be quoted. A field should be quoted if it contains:
+        // 1. A comma (,)
+        // 2. A double quote (")
+        // 3. A newline character (\n)
+        // 4. Sometimes leading/trailing whitespace is reason to quote, but often optional. Let's keep it simple.
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            val escapedValue = value.replace("\"", "\"\"")  // Escape any double quotes *within* the value by doubling them (" becomes "")
+            return "\"$escapedValue\""  // Enclose the entire value in double quotes
+        }
+        return value // If the field does not contain any characters requiring quoting, return the value as is.
+    }
+
+    /**
+     * Helper function to show a JavaFX alert dialog.
+     *
+     * @param alertType The type of alert (e.g,. WARNING, ERROR, INFORMATION).
+     * @param title The title of the alert window.
+     * @param header The header text of the alert (can be null)
+     * @param content The main content text of the alert
+     */
+    private fun showAlert(alertType: AlertType, title: String, header: String?, content: String) {
+        val alert = Alert(alertType)
+        alert.title = title
+        alert.headerText = header
+        alert.contentText = content
+        alert.showAndWait() // Show the alert and wait for the user to close it
+    }
 }
 
 // *********************************************************************************************************************
