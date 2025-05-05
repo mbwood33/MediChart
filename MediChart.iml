@@ -16,5 +16,7 @@
     <orderEntry type="library" name="openjfx.javafx.graphics" level="project" />
     <orderEntry type="library" name="openjfx.javafx.base" level="project" />
     <orderEntry type="library" name="xerial.sqlite.jdbc" level="project" />
+    <orderEntry type="library" name="apache.pdfbox.fontbox" level="project" />
+    <orderEntry type="library" name="apache.pdfbox" level="project" />
   </component>
 </module>

@@ -12,9 +12,9 @@
             <menus>
                 <Menu text="File">
                     <items>
-                        <MenuItem mnemonicParsing="false" onAction="#handlePrintCurrentMeds" text="Print Current Medications" />
                         <MenuItem mnemonicParsing="false" onAction="#handleExportCurrentMedsCSV" text="Export Current Medications to CSV" />
-                        <MenuItem mnemonicParsing="false" onAction="#handleExportCurrentMedsPDF" text="Export Current Medications to PDF" />
+                        <SeparatorMenuItem mnemonicParsing="false" />
+                        <MenuItem mnemonicParsing="false" onAction="#handleExportPastMedsCSV" text="Export Past Medications to PDF" />
                     </items>
                 </Menu>
             </menus>

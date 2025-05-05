@@ -36,6 +36,7 @@ import javafx.scene.layout.Region   // If Region is used in FXML HBoxes
 import javafx.stage.FileChooser
 import java.io.BufferedWriter
 import java.io.FileWriter
+import java.io.File
 
 /**
  * Controller class for the main MediChart GUI.
@@ -88,11 +89,6 @@ class MediChartController {
     @FXML lateinit var editPastMedicationButton: Button
     @FXML lateinit var unarchiveButton: Button
     @FXML lateinit var deletePastMedicationButton: Button
-
-    // Other potential FXML elements (added 5/3/25)
-    // @FXML lateinit var sortBrandNameButton: Button // Add this if you added fx:id="sortBrandNameButton"
-    // @FXML lateinit var printCurrentMedsButton: Button // Add this if you added fx:id
-    // @FXML lateinit var exportCurrentMedsPdfButton: Button // Add this if you added fx:id
 
     // @FXML lateinit var addSurgeryButton: Button // Add this if you added fx:id
 
@@ -795,39 +791,9 @@ class MediChartController {
         println("Table sorted by Brand Name.")
     }
 
-    // --- Reporting and Export Methods (Placeholder) ---
+    // --- Reporting and Export Methods ---
 
-    /**
-     * Handles printing the current medications table.
-     * (Implementation needed - requires external libraries/JavaFX Printing API)
-     */
-    @FXML
-    private fun handlePrintCurrentMeds() {
-        println("Print Current Medications menu item clicked. (Implementation needed)")
-        val alert = Alert(AlertType.INFORMATION) // Placeholder
-        alert.title = "Print (TODO)"
-        alert.headerText = null
-        alert.contentText = "Print functionality is not yet implemented."
-        alert.initOwner(currentMedicationsTable.scene.window)
-        alert.showAndWait()
-    }
-    // TODO: Implement printing logic (requires JavaFX Printing API or a library)
-
-    /**
-     * Handles exporting the current medications table to PDF.
-     * (Implementation needed - requires a PDF library like iText or PDFBox)
-     */
-    @FXML
-    private fun handleExportCurrentMedsPDF() {
-        println("Export Current Medications PDF menu item clicked (Implementation needed)")
-        val alert = Alert(AlertType.INFORMATION) // Placeholder
-        alert.title = "Export PDF (TODO)"
-        alert.headerText = null
-        alert.contentText = "Export to PDF functionality is not yet implemented."
-        alert.initOwner(currentMedicationsTable.scene.window)
-        alert.showAndWait()
-    }
-    // TODO: Implement PDF export logic (requires a library like iText, Apache PDFBox)
+    // TODO: Implement PDF export
 
     /**
      * Handles exporting the current medications table to a CSV file.
@@ -888,6 +854,83 @@ class MediChartController {
 
                     println("Current Medications dat exported successfully to ${file.absolutePath}")
                     showAlert(AlertType.INFORMATION, "Export Successful", "Export Complete", "Current Medications data has been successfully exported to:\n${file.absolutePath}")
+
+                }
+            } catch (e: IOException) {
+                System.err.println("Error writing CSV file: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Error Writing File", "An error occurred while writing the CSV file:\n${e.message}")
+            } catch (e: Exception) {
+                System.err.println("An unexpected error occurred during CSV export: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Unexpected Error", "An unexpected error occurred during the export process:\n${e.message}")
+            }
+        } else {
+            println("CSV export cancelled by user.")
+        }
+    }
+
+    /**
+     * Handles exporting the past medications table data to a CSV file.
+     */
+    @FXML
+    private fun handleExportPastMedsCSV() {
+        println("Export Current Medications CSV menu item clicked.")
+
+        val fileChooser = FileChooser()
+        fileChooser.title = "Export Past Medications to CSV"
+        fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("CSV files (*.csv)", "*.csv"))
+        fileChooser.initialFileName = "past_medications_${LocalDate.now()}.csv"
+
+        val file = fileChooser.showSaveDialog(currentMedicationsTable.scene.window) // Set owner window
+
+        // Check if the user selected a file (didn't cancel)
+        if (file != null) {
+            val data = pastMedicationsTable.items    // Get the data from the TableView's items list
+
+            if (data.isEmpty()) {
+                showAlert(AlertType.INFORMATION, "Export Failed", "No Data to Export", "The Past Medications table is empty. Nothing was exported.")
+                return  // Exit the method if no data
+            }
+
+            try {
+                // Use a BufferedWriter and FileWriter to write to the file efficiently
+                // The use{} block ensures the writer and underlying stream are closed automatically.
+                BufferedWriter(FileWriter(file)).use { writer ->
+                    // Write CSV Header Row based on the columns you want to include.
+                    // Define the desired header fields here
+                    val header = listOf(
+                        "Brand Name", "Generic Name", "Dosage", "Dose Form",
+                        "Instructions", "Reason Taken", "Prescriber", "History Notes",
+                        "Reason Stopped", "Date Range(s)", "Manufacturer"
+                    )
+                    writer.write(header.joinToString(",") { field -> escapeCsvField(field) })
+                    writer.newLine()
+
+                    // Write Data Rows
+                    data.forEach { medication ->
+                        // Extract data for each column from the Medication object
+                        // Use toString() for LocalDate? and handle nulls by passing null to escapeCsvField
+                        val rowData = listOf(
+                            medication.brandName,
+                            medication.genericName, // Non-nullable String
+                            medication.dosage,
+                            medication.doseForm,
+                            medication.instructions,
+                            medication.reason,
+                            medication.prescriber,
+                            medication.historyNotes,
+                            medication.reasonForStopping,
+                            dbManager?.serializeDateRanges(medication.dateRanges),
+                            medication.manufacturer
+                        )
+                        // Join row data with commas, escape fields, and write the data line
+                        writer.write(rowData.joinToString(",") {field -> escapeCsvField(field) })
+                        writer.newLine()    // Write a newLine character
+                    }
+
+                    println("Past Medications data exported successfully to ${file.absolutePath}")
+                    showAlert(AlertType.INFORMATION, "Export Successful", "Export Complete", "Past Medications data has been successfully exported to:\n${file.absolutePath}")
 
                 }
             } catch (e: IOException) {
