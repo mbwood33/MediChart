@@ -15,7 +15,7 @@
                             <children>
                                 <VBox layoutX="10.0" layoutY="10.0" prefHeight="550.0" prefWidth="780.0" spacing="10.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
                                     <children>
-                                        <TableView fx:id="currentMedicationsTable" prefHeight="480.0" prefWidth="780.0" editable="true">
+                                        <TableView fx:id="currentMedicationsTable" prefHeight="480.0" prefWidth="780.0" editable="true" VBox.vgrow="ALWAYS">
                                             <columns>
                                                 <TableColumn fx:id="currentBrandNameColumn" prefWidth="100.0" text="Brand Name" editable="true" />
                                                 <TableColumn fx:id="currentGenericNameColumn" prefWidth="120.0" text="Generic Name" editable="true" />
@@ -62,7 +62,7 @@
                             <children>
                                 <VBox layoutX="10.0" layoutY="10.0" prefHeight="550.0" prefWidth="780.0" spacing="10.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
                                     <children>
-                                        <TableView fx:id="pastMedicationsTable" prefHeight="480.0" prefWidth="780.0">
+                                        <TableView fx:id="pastMedicationsTable" prefHeight="480.0" prefWidth="780.0" VBox.vgrow="ALWAYS">
                                             <columns>
                                                 <TableColumn fx:id="pastBrandNameColumn" prefWidth="100.0" text="Brand Name" />
                                                 <TableColumn fx:id="pastGenericNameColumn" prefWidth="120.0" text="Generic Name" />
@@ -100,7 +100,7 @@
                             <children>
                                 <VBox layoutX="10.0" layoutY="10.0" prefHeight="550.0" prefWidth="780.0" spacing="10.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
                                     <children>
-                                        <TableView fx:id="surgeriesTable" prefHeight="480.0" prefWidth="780.0">
+                                        <TableView fx:id="surgeriesTable" prefHeight="480.0" prefWidth="780.0" VBox.vgrow="ALWAYS">
                                             <columns>
                                                 <TableColumn fx:id="surgeryNameColumn" prefWidth="200.0" text="Surgery" />
                                                 <TableColumn fx:id="surgeryDateColumn" prefWidth="150.0" text="Date" />
