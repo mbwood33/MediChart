@@ -94,6 +94,60 @@ class DatabaseManager {
                 stmt.execute(createPastMedsTable)
                 stmt.execute(createSurgeriesTable)
                 // System.out.println("Tables checked/created successfully.") // Optional: for debugging
+
+                val checkEmptySql = "SELECT COUNT(*) FROM current_meds;"
+                val rowCount = stmt.executeQuery(checkEmptySql).use { rs ->
+                    if (rs.next()) rs.getInt(1) else 0 // Get the count from the first column of the result
+                }
+
+                if (rowCount == 0) {
+                    println("Database 'current_meds' table is empty. Inserting sample data.")
+
+                    // Insert sample current medications
+                    val insertSampleMedsSql = """
+                        INSERT INTO current_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, notes, start_date, manufacturer) VALUES
+                        ('Metformin', 'Glucophage', '500 mg', 'Tablet', 'Take with food', 'Type 2 Diabetes', 'Dr. Adams', 'Taking well', '2023-05-10', 'Manufacturer A'),
+                        ('Lisinopril', 'Zestril', '10 mg', 'Tablet', 'Take once daily', 'High Blood Pressure', 'Dr. Smith', null, '2022-11-15', 'Manufacturer B'),
+                        ('Atorvastatin', 'Lipitor', '20 mg', 'Tablet', 'Take at bedtime', 'High Cholesterol', 'Dr. Jones', 'Mild muscle aches initially', '2024-01-20', 'Manufacturer C');
+                    """.trimIndent()
+                    // Use executeUpdate() for INSERT, UPDATE, DELETE
+                    // stmt.executeUpdate(insertSampleMedsSql) // Can use executeUpdate for simple inserts
+
+                    // Or use prepared statements for potentially safer insertion, although for hardcoded samples it's less critical
+                    // Since we have multiple inserts, let's use a Statement or separate PreparedStatements
+                    conn.createStatement().use { insertStmt ->
+                        insertStmt.executeUpdate(insertSampleMedsSql)
+                        println("Sample current medications inserted.")
+                    }
+
+
+                    // Insert sample past medications
+                    val insertSamplePastMedsSql = """
+                         INSERT INTO past_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer) VALUES
+                         ('Amoxicillin', 'Amoxil', '500 mg', 'Capsule', 'Take every 8 hours', 'Bacterial Infection', 'Dr. Chen', 'Caused mild nausea', 'Completed course', '2024-03-01_2024-03-10', 'Manufacturer D'),
+                         ('Omeprazole', 'Prilosec', '20 mg', 'Capsule', 'Take before breakfast', 'Heartburn', 'Dr. Lee', 'Effective, stopped when symptoms resolved', 'Symptoms resolved', '2023-08-01_2023-11-01;2024-01-15_2024-02-15', 'Manufacturer E');
+                     """.trimIndent()
+                    conn.createStatement().use { pastStmt ->
+                        pastStmt.executeUpdate(insertSamplePastMedsSql)
+                        println("Sample past medications inserted.")
+                    }
+
+
+                    // Insert sample surgeries
+                    val insertSampleSurgeriesSql = """
+                         INSERT INTO surgeries(name, date, surgeon) VALUES
+                         ('Appendectomy', '2020-07-10', 'Dr. White'),
+                         ('Knee Arthroscopy', '2022-03-25', 'Dr. Green');
+                     """.trimIndent()
+                    conn.createStatement().use { surgeryStmt ->
+                        surgeryStmt.executeUpdate(insertSampleSurgeriesSql)
+                        println("Sample surgeries inserted.")
+                    }
+
+                    println("Sample data insertion complete.")
+                } else {
+                    println("Database 'current_meds' table contains existing data. Skipping sample data insertion.")
+                }
             }
         } ?: System.err.println("Failed to connect to database to create tables.") // Elvis operator for null check
     }

@@ -3,6 +3,7 @@ package com.medichart.controller
 import com.medichart.database.DatabaseManager
 import com.medichart.model.Medication
 import com.medichart.model.PastMedication
+import com.medichart.model.PastMedication.DateRange
 import com.medichart.model.Surgery
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -83,18 +84,71 @@ class MediChartController {
     @FXML lateinit var editMedicationButton: Button
     @FXML lateinit var archiveMedicationButton: Button
     @FXML lateinit var deleteCurrentMedicationButton: Button
-
-    // Past Medications Tab Buttons (added 5/3/25)
     @FXML lateinit var addPastMedicationButton: Button
     @FXML lateinit var editPastMedicationButton: Button
     @FXML lateinit var unarchiveButton: Button
     @FXML lateinit var deletePastMedicationButton: Button
 
-    // @FXML lateinit var addSurgeryButton: Button // Add this if you added fx:id
-
     private lateinit var currentMedicationsData: ObservableList<Medication>
     private lateinit var pastMedicationsData: ObservableList<PastMedication>
     private lateinit var surgeriesData: ObservableList<Surgery>
+
+    /**
+     * This method is called by the application entry point (MediChartApp)
+     * AFTER the FXML has been loaded and initialize() has been called.
+     * It's used to inject dependencies and perform setup that requires them.
+     * @param dbManager The initialized DatabaseManager instance.
+     */
+    fun setupDependencies(dbManager: DatabaseManager) { // ADD THIS NEW METHOD
+        this.dbManager = dbManager // Initialize the lateinit var here
+
+        // --- Database Initialization (Already done in App, so just pass the instance) ---
+        // dbManager.createTables() // REMOVE - should be done once in App startup
+
+        // --- Data Loading ---
+        // Load data into tables after dbManager is set up
+        loadCurrentMedications() // CALL THESE METHODS HERE
+        loadPastMedications()    // CALL THESE METHODS HERE
+        loadSurgeries()          // CALL THESE METHODS HERE
+
+        // --- Inline Editing Setup (Requires dbManager) ---
+        // Set up inline editing using the setupStringInLineEditing extension function for current medications
+        // These calls require the dbManager instance. MOVE THESE BLOCKS HERE FROM initialize()
+        currentGenericNameColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue -> item.copy(genericName = newValue) }
+        currentBrandNameColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue -> item.copy(brandName = newValue.takeIf { it.isNotEmpty () }) }
+        currentDosageColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue -> item.copy(dosage = newValue.takeIf { it.isNotEmpty() }) }
+        currentDoseFormColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue -> item.copy(doseForm = newValue.takeIf { it.isNotEmpty() }) }
+        currentInstructionsColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue -> item.copy(instructions = newValue.takeIf { it.isNotEmpty() }) }
+        currentManufacturerColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue -> item.copy(manufacturer = newValue.takeIf { it.isNotEmpty() }) }
+        currentReasonColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue -> item.copy(reason = newValue.takeIf { it.isNotEmpty() }) }
+        currentPrescriberColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue -> item.copy(prescriber = newValue.takeIf { it.isNotEmpty() }) }
+        // TODO: Add inline editing for current Start Date (DatePicker) - Move setup here if it needs dbManager
+        // TODO: Add inline editing for current Notes (TextArea) - Move setup here if it needs dbManager
+
+        // Set up inline editing using the setupStringInLineEditing extension function for past medications
+        // These calls require the dbManager instance. MOVE THESE BLOCKS HERE FROM initialize()
+        pastGenericNameColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(genericName = newValue) }
+        pastBrandNameColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(brandName = newValue.takeIf { it.isNotEmpty () }) }
+        pastDosageColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(dosage = newValue.takeIf { it.isNotEmpty() }) }
+        pastDoseFormColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(doseForm = newValue.takeIf { it.isNotEmpty() }) }
+        pastInstructionsColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(instructions = newValue.takeIf { it.isNotEmpty() }) }
+        pastManufacturerColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(manufacturer = newValue.takeIf { it.isNotEmpty() }) }
+        pastReasonColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(reason = newValue.takeIf { it.isNotEmpty() }) }
+        pastPrescriberColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(prescriber = newValue.takeIf { it.isNotEmpty() }) }
+        pastReasonForStoppingColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue -> item.copy(reasonForStopping = newValue.takeIf { it.isNotEmpty() }) }
+        // TODO: Add inline editing for past History Notes (TextArea) - Move setup here if it needs dbManager
+        // TODO: Add inline editing for past Date Ranges (custom cell/dialog) - Move setup here if it needs dbManager
+    }
+
+    /**
+     * Public method called by the application entry point (MediChartApp)
+     * to provide the initialized DatabaseManager instance.
+     * This is the standard way to inject this dependency.
+     * @param dbManager The initialized DatabaseManager instance.
+     */
+    fun setDbManager(dbManager: DatabaseManager) { // <-- KEEP OR ADD THIS METHOD
+        this.dbManager = dbManager
+    }
 
     /**
      * Initializes the controller after its root element has been completely processed.
@@ -103,9 +157,6 @@ class MediChartController {
      */
     @FXML
     fun initialize() {
-        dbManager = DatabaseManager()   // Initialize dbManager
-        dbManager.createTables()    // Ensure tables exist on startup
-
         // Set up Current Medications Table Columns
         // PropertyValueFactory still works with kotlin data class properties by looking for getters (which val/var provide)
         currentGenericNameColumn.cellValueFactory = PropertyValueFactory("genericName")
@@ -146,8 +197,8 @@ class MediChartController {
         // TODO: (Future) Implement custom cell factory for surgeryDateColumn (DatePickerTableCell)
         // TODO: (Future) Add inline editing for Surgeries table
 
-        // --- ENABLE INLINE EDITING FOR CURRENT MEDICATIONS TABLE ---
         currentMedicationsTable.isEditable = true   // Enable inline editing for Current Medications Table
+        pastMedicationsTable.isEditable = true   // Enable inline editing for Past Medications Table
 
         // --- Enforce Double-Click for Editing (Current Meds) ---
         // Add an event filter to the TableView to require double-clicking for editing.
@@ -169,49 +220,6 @@ class MediChartController {
         }
         // --- End Enforce Double-Click
 
-        // Set up inline editing using the setupStringInLineEditing extension function for current medications
-        // This configures the cell factory and the onEditCommit handler for each column.
-        // The lambda defines how to create a new Medication object using copy().
-        // Database update is left as a TODO for a separate "Save" feature.
-
-        // Generic Name
-        currentGenericNameColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
-            item.copy(genericName = newValue)   // Define how to update genericName
-        }
-        // Brand Name
-        currentBrandNameColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
-            item.copy(brandName = newValue.takeIf { it.isNotEmpty () })   // Define how to update brandName
-        }
-        // Dosage
-        currentDosageColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
-            item.copy(dosage = newValue.takeIf { it.isNotEmpty() })   // Define how to update dosage
-        }
-        // Dosage From
-        currentDoseFormColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
-            item.copy(doseForm = newValue.takeIf { it.isNotEmpty() })   // Define how to update doseForm
-        }
-        // Instructions
-        currentInstructionsColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
-            item.copy(instructions = newValue.takeIf { it.isNotEmpty() })   // Define how to update instructions
-        }
-        // Manufacturer
-        currentManufacturerColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
-            item.copy(manufacturer = newValue.takeIf { it.isNotEmpty() })   // Define how to update manufacturer
-        }
-        // Reason
-        currentReasonColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
-            item.copy(reason = newValue.takeIf { it.isNotEmpty() })   // Define how to update reason
-        }
-        // Prescriber
-        currentPrescriberColumn.setupStringInLineEditing(currentMedicationsTable, dbManager) { item, newValue ->
-            item.copy(prescriber = newValue.takeIf { it.isNotEmpty() })   // Define how to update prescriber
-        }
-
-        // TODO: (Future) Apply Custom Cell Factory for Word Wrapping to Notes columns.
-
-        // --- ENABLE INLINE EDITING FOR PAST MEDICATIONS TABLE ---
-        pastMedicationsTable.isEditable = true   // Enable inline editing for Past Medications Table
-
         // --- Enforce Double-Click for Editing (Past Meds) ---
         // TODO: Add Double-Click enforcement for past medications table if desired
         pastMedicationsTable.addEventFilter(MouseEvent.MOUSE_CLICKED) { event ->
@@ -231,78 +239,38 @@ class MediChartController {
             }
         }
         // --- End Enforce Double-Click (Past Meds) ---
-
-        // Set up inline editing using the setupStringInLineEditing extension function for past medications
-        // This configures the cell factory and the onEditCommit handler for each column.
-        // The lambda defines how to create a new Medication object using copy().
-        // Database update is left as a TODO for a separate "Save" feature.
-
-        // Generic Name
-        pastGenericNameColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
-            item.copy(genericName = newValue)   // Define how to update genericName
-        }
-        // Brand Name
-        pastBrandNameColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
-            item.copy(brandName = newValue.takeIf { it.isNotEmpty () })   // Define how to update brandName
-        }
-        // Dosage
-        pastDosageColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
-            item.copy(dosage = newValue.takeIf { it.isNotEmpty() })   // Define how to update dosage
-        }
-        // Dosage From
-        pastDoseFormColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
-            item.copy(doseForm = newValue.takeIf { it.isNotEmpty() })   // Define how to update doseForm
-        }
-        // Instructions
-        pastInstructionsColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
-            item.copy(instructions = newValue.takeIf { it.isNotEmpty() })   // Define how to update instructions
-        }
-        // Manufacturer
-        pastManufacturerColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
-            item.copy(manufacturer = newValue.takeIf { it.isNotEmpty() })   // Define how to update manufacturer
-        }
-        // Reason
-        pastReasonColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
-            item.copy(reason = newValue.takeIf { it.isNotEmpty() })   // Define how to update reason
-        }
-        // Prescriber
-        pastPrescriberColumn.setupStringInLineEditing(pastMedicationsTable, dbManager) { item, newValue ->
-            item.copy(prescriber = newValue.takeIf { it.isNotEmpty() })   // Define how to update prescriber
-        }
-
-        // TODO: Add inline editing for past History Notes (TextArea) and Date Ranges (custom cell/dialog)
-
-        // Load data into tables
-        loadCurrentMedications()
-        loadPastMedications()
-        loadSurgeries()
     }
 
     /**
      * Loads current medications from the database and updates the TableView.
      */
-    private fun loadCurrentMedications() {
-        val medications = dbManager.getAllCurrentMedications()
-        currentMedicationsData = FXCollections.observableArrayList(medications)
+    fun loadCurrentMedications() {
+        val meds = dbManager.getAllCurrentMedications() // This uses dbManager
+        currentMedicationsData = FXCollections.observableArrayList(meds)
         currentMedicationsTable.items = currentMedicationsData  // Set the data to the table
+        println("Loaded ${meds.size} current medications.")
     }
 
     /**
      * Loads past medications from the database and updates the TableView.
      */
-    private fun loadPastMedications() {
-        val pastMedications = dbManager.getAllPastMedications()
-        pastMedicationsData = FXCollections.observableArrayList(pastMedications)
+    fun loadPastMedications() {
+        println("Loading past medications...")
+        val meds = dbManager.getAllPastMedications() // This uses dbManager
+        pastMedicationsData = FXCollections.observableArrayList(meds)
         pastMedicationsTable.items = pastMedicationsData
+        println("Loaded ${meds.size} past medications.")
     }
 
     /**
      * Loads surgeries from the database and updates the TableView
      */
-    private fun loadSurgeries() {
-        val surgeries = dbManager.getAllSurgeries()
+    fun loadSurgeries() {
+        println("Loading surgeries...")
+        val surgeries = dbManager.getAllSurgeries() // This uses dbManager
         surgeriesData = FXCollections.observableArrayList(surgeries)
         surgeriesTable.items = surgeriesData
+        println("Loaded ${surgeries.size} surgeries.")
     }
 
     // --- Event Handlers for GUI Actions (Placeholder Methods) ---
@@ -321,37 +289,30 @@ class MediChartController {
             // Load the FXML for the add medication dialog
             val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/AddMedicationDialog.fxml"))
             val dialogRoot = fxmlLoader.load<VBox>()    // Load the root element (VBox)
-
-            // Get the controller for the dialog
             val dialogController = fxmlLoader.getController<AddMedicationController>()
 
             // Create a new stage for the dialog window
             val dialogStage = Stage()
             dialogStage.title = "Add New Medication"
             dialogStage.initModality(Modality.WINDOW_MODAL) // Make it modal (blocks input to parent window)
-            // Set the owner stage so the dialog is centered over the main window
             dialogStage.initOwner(currentMedicationsTable.scene.window) // Use any element to get the scene and window
             val dialogScene = Scene(dialogRoot) // Create the scene
+            dialogStage.scene = dialogScene
 
             dialogController.setDialogStage(dialogStage)    // Passes the Stage reference and sets up key event listeners
 
-            dialogStage.scene = dialogScene // Set the scene
             dialogStage.showAndWait()   // Show the dialog and wait for it to be closed by the user
 
             // After the dialog is closed, check if the user clicked Save
             if (dialogController.isSavedSuccessful) {
                 val newMedication = dialogController.medicationData // Get the Medication object from the dialog controller
-
-                // Ensure the medication data was actually captured
                 if (newMedication != null) {
                     dbManager.addMedication(newMedication)  // Add the new medication to the database
                     loadCurrentMedications()    // Refresh the current medications table to show the new entry
 
-                    // Select the last item in the table (the newly added one)
                     if (currentMedicationsTable.items.isNotEmpty()) {
                         currentMedicationsTable.selectionModel.selectLast()
                     }
-
                     println("Medication added successfully: ${newMedication.brandName ?: newMedication.genericName}")
                 } else {
                     println("Dialog closed, but no medication data was captured.")
@@ -360,10 +321,9 @@ class MediChartController {
                 println("Add Medication dialog cancelled.")
             }
         } catch (e: IOException) {
-            // Handle potential errors during FXML loading
             System.err.println("Error loading Add Medication dialog FXML: ${e.message}")
             e.printStackTrace() // Print stack trace for debugging
-            // TODO: Show an error message to the user
+            showAlert(AlertType.ERROR, "Error Loading Dialog", "Could not load the add dialog.", "An error occurred while trying to open the add window.") // Use showAlert helper
         }
     }
 
@@ -376,59 +336,32 @@ class MediChartController {
     private fun handleEditMedication() {
         println("Edit Medications button clicked.")
         val selectedMed = currentMedicationsTable.selectionModel.selectedItem   // Get selected item from table
-
         if (selectedMed != null) {
             println("Edit: ${selectedMed.brandName ?: selectedMed.genericName}")
             try {
                 // --- Load the Edit Medication dialog FXML ---
                 val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/EditMedicationDialog.fxml")) // <-- CORRECTED LINE
                 val dialogRoot = fxmlLoader.load<VBox>() // Load the root element (VBox)
-
-                // Get the controller for the dialog
                 val dialogController = fxmlLoader.getController<EditMedicationController>() // Get the Edit dialog controller
 
-                // Create a new stage for the dialog window
                 val dialogStage = Stage()
                 dialogStage.title = "Edit Medication"   // Set the dialog title
                 dialogStage.initModality(Modality.WINDOW_MODAL) // Make it modal (blocks input to parent window)
                 dialogStage.initOwner(currentMedicationsTable.scene.window) // Set the owner stage for centering
                 val dialogScene = Scene(dialogRoot) // Create the scene from the loaded FXML root
+                dialogStage.scene = dialogScene
 
-                // Pass the Stage reference to the dialog controller (for closing the dialog etc.)
                 dialogController.setDialogStage(dialogStage)    // Pass Stage
-
-                // --- Pass the selected Medication data to the dialog controller ---
                 dialogController.setMedicationData(selectedMed)
 
-                dialogStage.scene = dialogScene
                 dialogStage.showAndWait()
 
-                // --- Handle the results after the dialog is closed ---
-                // This part is similar to handleAddMedication, but handles saving/updating the item.
-                // Check if the user clicked Save in the dialog
                 if (dialogController.isSavedSuccessful) {
-                    // Get the updated data from the dialog controller (This assumes Save button in dialog
-                    // captured the data and put it into dialogController.medicationData)
                     val updatedMedication = dialogController.medicationData
-
-                    // Ensure the updated data was captured from the dialog
                     if (updatedMedication != null) {
-                        // TODO: Implement the database update method in DatabaseManager first!
-                        // Call the database update method with the updated medication object
                         dbManager.updateMedication(updatedMedication)
-
-                        // For now, since DB update isn't implemented, just update the item in the TableView's list
-                        // Find the index of the original item in the list and replace it with the updated one
-                        // val index = currentMedicationsTable.items.indexOf(selectedMed)  // Use the original object to find its position
-                        // if (index >= 0) {
-                        //     currentMedicationsTable.items[index] = updatedMedication // Replace the item in the list
-                        //     // The TableView should update automatically because its item list is Observable.
-                        // }
-
                         loadCurrentMedications()    // Refresh the table to be sure (or rely on ObservableList update)
-
                         // TODO: Add selection highlighting for the edited item after refresh?
-
                         println("Medication updated successfully (in memory): ${updatedMedication.brandName ?: updatedMedication.genericName}") // Placeholder print
                     } else {
                         println("Edit dialog closed, but no updated medication data was captured (Save may have failed or not implemented yet).")   // Placeholder print
@@ -441,87 +374,12 @@ class MediChartController {
                 System.err.println("Error loading Edit Medication dialog FXML: ${e.message}")
                 e.printStackTrace()
                 // TODO: Show an error message to the user
+                showAlert(AlertType.ERROR, "Error Loading Dialog", "Could not load the edit dialog.", "An error occurred while trying to open the edit window.") // Use showAlert helper
             }
         } else {
             // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
             println("No medication selected for editing.")  // Placeholder print
-        }
-    }
-
-    /**
-     * Handles the action of editing the selected past medication.
-     * Opens a dialog to edit past medication details.
-     * Added 5/3/25
-     */
-    @FXML
-    private fun handleEditPastMedication() {
-        println("Edit Past Medication button clicked.")
-        val selectedPastMed = pastMedicationsTable.selectionModel.selectedItem
-
-        if (selectedPastMed != null) {
-            println("Edit Past: ${selectedPastMed.brandName ?: selectedPastMed.genericName}")
-            try {
-                // --- Load the Edit Past Medication dialog FXML ---
-                val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/EditPastMedicationDialog.fxml"))
-                val dialogRoot = fxmlLoader.load<VBox>()
-                val dialogController = fxmlLoader.getController<EditPastMedicationController>()
-
-                val dialogStage = Stage()
-                dialogStage.title = "Edit Past Medication"
-                dialogStage.initModality(Modality.WINDOW_MODAL)
-                dialogStage.initOwner(pastMedicationsTable.scene.window)
-                val dialogScene = Scene(dialogRoot)
-
-                // Pass the Stage and DatabaseManager to the dialog controller's setup method
-                dialogController.setDialog(dialogStage, dbManager)
-
-                // Pass the selected Past Medication data to the dialog controller
-                dialogController.setPastMedicationData(selectedPastMed)
-
-                dialogStage.scene = dialogScene
-                dialogStage.showAndWait()
-
-                // --- Handle the results after the dialog is closed ---
-                // Check if the user clicked Save in the dialog
-                if (dialogController.isSavedSuccessful) {
-                    val updatedPastMedication = dialogController.pastMedicationData // Get the updated data from the dialog controller
-
-                    // Ensure the updated data was captured from the dialog
-                    if (updatedPastMedication != null) {
-                        // Call the DB update method for past medications
-                        dbManager.updatePastMedication(updatedPastMedication)
-
-                        loadPastMedications()
-
-                        // TODO: Add selection highlighting for the edited item after refresh?
-
-                        println("Past Medication updated successfully: ${updatedPastMedication.brandName ?: updatedPastMedication.genericName}")
-                    } else {
-                        println("Edit Past dialog cclosed, but no updated past medication data was captured (Save may have failed).")
-                    }
-                } else {
-                    println("Edit Past Medication dialog cancelled.")
-                }
-            } catch (e: IOException) {
-                System.err.println("Error loading Edit Past Medication dialog FXML: ${e.message}")
-                e.printStackTrace()
-                // TODO: Show an error message to the user
-                val alert = Alert(AlertType.ERROR)
-                alert.title = "Error Loading Dialog"
-                alert.headerText = "Could not load the edit dialog."
-                alert.contentText = "An error occurred while trying to open the edit window."
-                alert.initOwner(pastMedicationsTable.scene.window)
-                alert.showAndWait()
-            }
-        } else {
-            // TODO: Show a warning or information dialog to he user
-            println("No past medication selected for editing.")
-            val alert = Alert(AlertType.INFORMATION)
-            alert.title = "No Selection"
-            alert.headerText = null
-            alert.contentText = "Please select a past medication in the table to edit."
-            alert.initOwner(pastMedicationsTable.scene.window)
-            alert.showAndWait()
+            showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a current medication in the table to edit.") // Use showAlert helper
         }
     }
 
@@ -534,7 +392,6 @@ class MediChartController {
     private fun handleArchiveMedication() {
         println("Archive Medication button clicked.")
         val selectedMed = currentMedicationsTable.selectionModel.selectedItem
-
         if (selectedMed != null) {
             // TODO: Add confirmation dialog before archiving
 
@@ -608,6 +465,135 @@ class MediChartController {
             alert.headerText = null
             alert.contentText = "Please select a current medication in the table to delete."
             alert.initOwner(currentMedicationsTable.scene.window)
+            alert.showAndWait()
+        }
+    }
+
+    /**
+     * Handles adding a new medication directly to the archive (Past Medications).
+     */
+    @FXML
+    private fun handleAddPastMedication() {
+        println("Add to Archive button clicked. (TODO)")
+        try {
+            val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/AddPastMedicationDialog.fxml"))
+            val dialogRoot = fxmlLoader.load<VBox>()
+            val dialogController = fxmlLoader.getController<AddPastMedicationController>()
+
+            val dialogStage = Stage()
+            dialogStage.title = "Add Past Medication"
+            dialogStage.initModality(Modality.WINDOW_MODAL)
+            dialogStage.initOwner(pastMedicationsTable.scene.window)
+            val dialogScene = Scene(dialogRoot)
+            dialogStage.scene = dialogScene
+
+            dialogController.setupDialog(dialogStage, dbManager)
+
+            dialogStage.showAndWait()
+
+            if (dialogController.isSavedSuccessful) {
+                val newPastMedication = dialogController.pastMedicationData
+
+                if (newPastMedication != null) {
+                    dbManager.addPastMedication(newPastMedication)
+                    loadPastMedications()
+
+                    // Optional: Add selection highlighting for the newly added item after refresh?
+                    // This requires retrieving the item from the database after loading, which
+                    // might involve finding it by generic name or another unique identifier if ID wasn't set on add.
+                    // For simplicity, we just reload and don't auto-select for now.
+
+                    println("New Past Medication added: ${newPastMedication.brandName ?: newPastMedication.genericName}")
+                } else {
+                    println("Add Past dialog closed, but no past medication data was captured.")
+                }
+            } else {
+                println("Add Past Medication dialog cancelled.")
+            }
+        } catch (e: IOException) {
+            // Handle potential errors during FXML loading (e.g., file not found, FXML syntax error)
+            System.err.println("Error loading Add Past Medication dialog FXML: ${e.message}")
+            e.printStackTrace() // Print stack trace for debugging
+            // Show an error message to the user (using a helper function if available)
+            val alert = Alert(AlertType.ERROR)
+            alert.title = "Error Loading Dialog"
+            alert.headerText = "Could not load the add dialog."
+            alert.contentText = "An error occurred while trying to open the add window."
+            alert.initOwner(pastMedicationsTable.scene.window)
+            alert.showAndWait()
+        }
+    }
+
+
+    /**
+     * Handles the action of editing the selected past medication.
+     * Opens a dialog to edit past medication details.
+     * Added 5/3/25
+     */
+    @FXML
+    private fun handleEditPastMedication() {
+        println("Edit Past Medication button clicked.")
+        val selectedPastMed = pastMedicationsTable.selectionModel.selectedItem
+        if (selectedPastMed != null) {
+            println("Edit Past: ${selectedPastMed.brandName ?: selectedPastMed.genericName}")
+            try {
+                // --- Load the Edit Past Medication dialog FXML ---
+                val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/EditPastMedicationDialog.fxml"))
+                val dialogRoot = fxmlLoader.load<VBox>()
+                val dialogController = fxmlLoader.getController<EditPastMedicationController>()
+
+                val dialogStage = Stage()
+                dialogStage.title = "Edit Past Medication"
+                dialogStage.initModality(Modality.WINDOW_MODAL)
+                dialogStage.initOwner(pastMedicationsTable.scene.window)
+                val dialogScene = Scene(dialogRoot)
+
+                // Pass the Stage and DatabaseManager to the dialog controller's setup method
+                dialogController.setDialog(dialogStage, dbManager)
+
+                // Pass the selected Past Medication data to the dialog controller
+                dialogController.setPastMedicationData(selectedPastMed)
+
+                dialogStage.scene = dialogScene
+                dialogStage.showAndWait()
+
+                // --- Handle the results after the dialog is closed ---
+                // Check if the user clicked Save in the dialog
+                if (dialogController.isSavedSuccessful) {
+                    val updatedPastMedication = dialogController.pastMedicationData // Get the updated data from the dialog controller
+
+                    // Ensure the updated data was captured from the dialog
+                    if (updatedPastMedication != null) {
+                        // Call the DB update method for past medications
+                        dbManager.updatePastMedication(updatedPastMedication)
+                        loadPastMedications()
+                        // TODO: Add selection highlighting for the edited item after refresh?
+                        println("Past Medication updated successfully: ${updatedPastMedication.brandName ?: updatedPastMedication.genericName}")
+                    } else {
+                        println("Edit Past dialog closed, but no updated past medication data was captured (Save may have failed).")
+                    }
+                } else {
+                    println("Edit Past Medication dialog cancelled.")
+                }
+            } catch (e: IOException) {
+                System.err.println("Error loading Edit Past Medication dialog FXML: ${e.message}")
+                e.printStackTrace()
+                // TODO: Show an error message to the user
+                val alert = Alert(AlertType.ERROR)
+                alert.title = "Error Loading Dialog"
+                alert.headerText = "Could not load the edit dialog."
+                alert.contentText = "An error occurred while trying to open the edit window."
+                alert.initOwner(pastMedicationsTable.scene.window)
+                alert.showAndWait()
+            }
+        } else {
+            // TODO: Show a warning or information dialog to he user
+            println("No past medication selected for editing.")
+            val alert = Alert(AlertType.INFORMATION)
+            alert.title = "No Selection"
+            alert.headerText = null
+            alert.contentText = "Please select a past medication in the table to edit."
+            alert.initOwner(pastMedicationsTable.scene.window)
             alert.showAndWait()
         }
     }
@@ -691,61 +677,6 @@ class MediChartController {
             alert.title = "No Selection"
             alert.headerText = null
             alert.contentText = "Please select a past medication in the table to delete."
-            alert.initOwner(pastMedicationsTable.scene.window)
-            alert.showAndWait()
-        }
-    }
-
-    /**
-     * Handles adding a new medication directly to the archive (Past Medications).
-     */
-    @FXML
-    private fun handleAddPastMedication() {
-        println("Add to Archive button clicked. (TODO)")
-        try {
-            val fxmlLoader = FXMLLoader(javaClass.getResource("/com/medichart/gui/AddPastMedicationDialog.fxml"))
-            val dialogRoot = fxmlLoader.load<VBox>()
-            val dialogController = fxmlLoader.getController<AddPastMedicationController>()
-
-            val dialogStage = Stage()
-            dialogStage.title = "Add Past Medication"
-            dialogStage.initModality(Modality.WINDOW_MODAL)
-            dialogStage.initOwner(pastMedicationsTable.scene.window)
-            val dialogScene = Scene(dialogRoot)
-            dialogStage.scene = dialogScene
-
-            dialogController.setupDialog(dialogStage, dbManager)
-
-            dialogStage.showAndWait()
-
-            if (dialogController.isSavedSuccessful) {
-                val newPastMedication = dialogController.pastMedicationData
-
-                if (newPastMedication != null) {
-                    dbManager.addPastMedication(newPastMedication)
-                    loadPastMedications()
-
-                    // Optional: Add selection highlighting for the newly added item after refresh?
-                    // This requires retrieving the item from the database after loading, which
-                    // might involve finding it by generic name or another unique identifier if ID wasn't set on add.
-                    // For simplicity, we just reload and don't auto-select for now.
-
-                    println("New Past Medication added: ${newPastMedication.brandName ?: newPastMedication.genericName}")
-                } else {
-                    println("Add Past dialog closed, but no past medication data was captured.")
-                }
-            } else {
-                println("Add Past Medication dialog cancelled.")
-            }
-        } catch (e: IOException) {
-            // Handle potential errors during FXML loading (e.g., file not found, FXML syntax error)
-            System.err.println("Error loading Add Past Medication dialog FXML: ${e.message}")
-            e.printStackTrace() // Print stack trace for debugging
-            // Show an error message to the user (using a helper function if available)
-            val alert = Alert(AlertType.ERROR)
-            alert.title = "Error Loading Dialog"
-            alert.headerText = "Could not load the add dialog."
-            alert.contentText = "An error occurred while trying to open the add window."
             alert.initOwner(pastMedicationsTable.scene.window)
             alert.showAndWait()
         }
