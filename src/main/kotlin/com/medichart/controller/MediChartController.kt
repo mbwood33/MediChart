@@ -39,6 +39,14 @@ import java.io.BufferedWriter
 import java.io.FileWriter
 import java.io.File
 
+import com.lowagie.text.Document
+import com.lowagie.text.Paragraph
+import com.lowagie.text.pdf.PdfWriter
+import com.lowagie.text.DocumentException
+import com.lowagie.text.Font
+import com.lowagie.text.FontFactory
+import com.lowagie.text.Chunk
+
 /**
  * Controller class for the main MediChart GUI.
  * Handles interactions between the GUI elements and the database.
@@ -800,6 +808,152 @@ class MediChartController {
             println("CSV export cancelled by user.")
         }
     }
+
+    /**
+     * Handles exporting the current medications table data to a PDF file using OpenPDF.
+     * Implements a table layout with basic pagination handling by the library.
+     * EDITED: Implementation using OpenPDF.
+     */
+    @FXML // Add @FXML annotation
+    private fun handleExportCurrentMedsPDF() { // Method name remains the same
+        println("Export Current Meds to PDF menu item clicked (OpenPDF - List Format).")
+
+        val data = currentMedicationsTable.items // Get the ObservableList of Medication objects
+
+        if (data.isEmpty()) {
+            showAlert(AlertType.INFORMATION, "Export Failed", "No Data to Export", "The Current Medications table is empty. Nothing was exported.")
+            return
+        }
+
+        // Use FileChooser to get a save location from the user (already implemented)
+        val fileChooser = FileChooser()
+        fileChooser.title = "Export Current Medications to PDF"
+        fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("PDF files (*.pdf)", "*.pdf"))
+        fileChooser.initialFileName = "current_medications_${LocalDate.now()}_list.pdf" // Changed default filename slightly
+
+        val file = fileChooser.showSaveDialog(currentMedicationsTable.scene.window) // Set owner window
+
+        // Check if the user selected a file (didn't cancel)
+        if (file != null) {
+            // --- OpenPDF Implementation (List Format) ---
+            val document = Document() // Create a new document instance
+
+            try {
+                // Get a PdfWriter instance to write the document content to the chosen file
+                // Using file.outputStream() is a common way to get an OutputStream from a File
+                PdfWriter.getInstance(document, file.outputStream())
+
+                // Open the document for writing.
+                // Margins can be set here: Document(marginLeft, marginRight, marginTop, marginBottom)
+                // Default is 36 points (0.5 inch) margin on all sides if not specified.
+                // Example with custom margins (1 inch on all sides):
+                // val oneInch = 72f // 72 points per inch
+                // val document = Document(oneInch, oneInch, oneInch, oneInch)
+                document.open() // Open the document with default margins (or custom if specified above)
+
+                // Define basic fonts using FontFactory (simpler than manual font handling)
+                val titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14f)
+                val normalFont = FontFactory.getFont(FontFactory.HELVETICA, 10f)
+                val boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10f) // Use bold font for labels if desired
+
+                // Add a title paragraph to the document
+                val title = Paragraph("Current Medications List", titleFont)
+                title.spacingAfter = 20f // Add vertical space after the title (in points)
+                document.add(title) // Add the title paragraph to the document
+
+                // Add each medication's details in a list format
+                data.forEachIndexed { index, medication ->
+                    // Add spacing before each medication entry, except the first one
+                    // This helps visually separate entries
+                    if (index > 0) {
+                        document.add(Paragraph("", normalFont).apply { spacingAfter = 10f }) // Add empty paragraph with space
+                    }
+
+                    // Line 1: Generic (Brand) Dosage Dose Form
+                    val line1Text = "${medication.genericName} (${medication.brandName ?: ""}) ${medication.dosage ?: ""} ${medication.doseForm ?: ""}"
+                    // Create a paragraph for this line and add it to the document
+                    document.add(Paragraph(line1Text, normalFont))
+
+
+                    // Line 2: Instructions and Reason taking
+                    // Using Chunk to mix styles or add specific spacing/elements if needed,
+                    // but simple string concatenation with spaces is fine for basic layout.
+                    val instructionsReasonText = buildString {
+                        append("Instructions: ")
+                        append(medication.instructions ?: "N/A")
+                        append("    Reason taking: ") // Using multiple spaces for separation
+                        append(medication.reason ?: "N/A")
+                    }
+                    // Create a paragraph for this line and add it
+                    document.add(Paragraph(instructionsReasonText, normalFont))
+
+
+                    // Line 3: Prescriber, Start Date, Manufacturer
+                    val line3Text = buildString {
+                        append("Prescriber: ")
+                        append(medication.prescriber ?: "N/A")
+                    }
+                    // Create a paragraph for this line and add it
+                    document.add(Paragraph(line3Text, normalFont))
+
+
+                    // Add Notes as a separate line if available and not empty
+                    if (!medication.notes.isNullOrEmpty()) {
+                        document.add(Paragraph("Notes: ${medication.notes}", normalFont))
+                    }
+
+                    // Add vertical space after the entire medication entry
+                    val entryEndSpace = Paragraph("", normalFont).apply { spacingAfter = 15f } // Space after each entry
+                    document.add(entryEndSpace)
+
+                    // OpenPDF automatically handles pagination when you add content (Paragraphs, etc.)
+                    // If adding a Paragraph causes it to exceed the page height, OpenPDF will
+                    // automatically start a new page for the remaining content and add the rest there.
+                }
+
+                document.close() // Close the document (CRUCIAL!) - Finalizes the PDF file
+
+                println("Current Medications data exported successfully to PDF: ${file.absolutePath}")
+
+                // Show success message alert
+                showAlert(AlertType.INFORMATION, "Export Successful", "Export Complete", "Current Medications data has been successfully exported to:\n${file.absolutePath}")
+
+            } catch (e: DocumentException) {
+                // Handle OpenPDF/iText document-specific exceptions (e.g., issues adding content)
+                System.err.println("PDF Document error during export: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Document Error", "A PDF document error occurred during export:\n${e.message}")
+            } catch (e: IOException) {
+                // Handle file writing errors (e.g., permission issues, disk full)
+                System.err.println("Error writing PDF file: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Error Writing File", "An error occurred while writing the PDF file:\n${e.message}")
+            } catch (e: Exception) {
+                // Catch any other unexpected exceptions during the process
+                System.err.println("An unexpected error occurred during PDF export: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Unexpected Error", "An unexpected error occurred during the export process:\n${e.message}")
+            } finally {
+                // Ensure the document is closed even if an exception occurs *before* the final document.close() call.
+                // Check if the document object was successfully assigned (is not null) AND if it is open before trying to close.
+                if (document != null && document.isOpen) { // <-- USE THIS CHECK
+                    try {
+                        document.close() // Attempt to close the document
+                    } catch (e: Exception) {
+                        // Handle potential errors during the closing process itself within the finally block
+                        System.err.println("Error closing PDF document in finally block: ${e.message}")
+                        e.printStackTrace()
+                    }
+                }
+            }
+            // --- End OpenPDF Implementation (List Format) ---
+        } else {
+            // This block executes if the user cancelled the file chooser dialog
+            println("PDF export cancelled by user.")
+        }
+    }
+
+
 
     /**
      * Handles exporting the past medications table data to a CSV file.

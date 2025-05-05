@@ -18,5 +18,6 @@
     <orderEntry type="library" name="xerial.sqlite.jdbc" level="project" />
     <orderEntry type="library" name="apache.pdfbox.fontbox" level="project" />
     <orderEntry type="library" name="apache.pdfbox" level="project" />
+    <orderEntry type="library" name="github.librepdf.openpdf" level="project" />
   </component>
 </module>
