@@ -46,6 +46,10 @@ import com.lowagie.text.DocumentException
 import com.lowagie.text.Font
 import com.lowagie.text.FontFactory
 import com.lowagie.text.Chunk
+import com.lowagie.text.Phrase
+import com.lowagie.text.Element
+import com.lowagie.text.pdf.draw.LineSeparator
+import com.sun.javafx.fxml.expression.Expression.add
 
 /**
  * Controller class for the main MediChart GUI.
@@ -814,6 +818,121 @@ class MediChartController {
      * Implements a table layout with basic pagination handling by the library.
      * EDITED: Implementation using OpenPDF.
      */
+    @FXML
+    private fun handleExportCurrentMedsPDF() {
+        println("Export Current Meds to PDF menu item clicked (OpenPDF - Enhanced List Format.")
+
+        val data = currentMedicationsTable.items
+
+        if (data.isEmpty()) {
+            showAlert(AlertType.INFORMATION, "Export Failed", "No Data to Export", "The Current Medications table is empty. Nothing was exported.")
+            return
+        }
+
+        val fileChooser = FileChooser()
+        fileChooser.title = "Export Current Medications to PDF"
+        fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("PDF files (*.pdf)", "*.pdf"))
+        fileChooser.initialFileName = "current_medications_${LocalDate.now()}_formatted_list.pdf" // Changed default filename
+
+        val file = fileChooser.showSaveDialog(currentMedicationsTable.scene.window)
+
+        if (file != null) {
+            var document: Document? = null
+
+            try {
+                document = Document()
+                PdfWriter.getInstance(document, file.outputStream())
+                document.open()
+
+                val titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16f) // Slightly larger title
+                val sectionFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10f) // Font for labels like "Instructions:", "Reason:"
+                val normalFont = FontFactory.getFont(FontFactory.HELVETICA, 10f) // Font for data values
+                val italicFont = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 10f) // Example italic font for Brand Name
+
+                val title = Paragraph("Current Medications List", titleFont).apply {
+                    alignment = Element.ALIGN_CENTER
+                    spacingAfter = 25f
+                }
+                document.add(title)
+
+                data.forEachIndexed { index, medication ->
+                    if (index > 0) {
+                        // val separator = Paragraph("---", normalFont).apply {
+                        //     alignment = Element.ALIGN_CENTER
+                        //     spacingBefore = 15f
+                        //     spacingAfter = 15f
+                        // }
+                        // document.add(separator)
+
+                        // Alternative: Add a horizontal line (requires different OpenPDF elements/imports)
+                        val line = LineSeparator()
+                        line.setOffset(5f)
+                        document.add(Chunk(line))
+                    }
+
+                    val mainInfoPhrase = Phrase().apply {
+                        add(Chunk(medication.genericName ?: "N/A", normalFont))
+                        if (!medication.brandName.isNullOrEmpty()) {
+                            add(Chunk(" (${medication.brandName})", italicFont))
+                        }
+                        if (!medication.dosage.isNullOrEmpty()) {
+                            add(Chunk(" - ${medication.dosage}", normalFont))
+                        }
+                        if (!medication.doseForm.isNullOrEmpty()) {
+                            add(Chunk(" ${medication.doseForm}", normalFont))
+                        }
+                    }
+                    val mainInfoParagraph = Paragraph(mainInfoPhrase).apply {
+                        spacingAfter = 5f
+                    }
+                    document.add(mainInfoParagraph)
+
+                    val instructionsParagraph = Paragraph().apply {
+                        add(Chunk("Instructions: ", sectionFont))
+                        add(Chunk(medication.instructions ?: "M/A", normalFont))
+                        spacingAfter = 3f
+                    }
+                    document.add(instructionsParagraph)
+
+                    val reasonParagraph = Paragraph().apply {
+                        add(Chunk("Reason taking: ", sectionFont))
+                        add(Chunk(medication.reason ?: "N/A", normalFont))
+                        spacingAfter = 5f
+                    }
+                    document.add(reasonParagraph)
+                }
+                document.close()
+                println("Current Medications data exported successfully to PDF: ${file.absolutePath}")
+                showAlert(AlertType.INFORMATION, "Export Successful", "Export Complete", "Current Medications data has been successfully exported to:\n${file.absolutePath}")
+            } catch (e: DocumentException) {
+                System.err.println("PDF Document error during export: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Document Error", "A PDF document error occurred during export:\n${e.message}")
+            } catch (e: IOException) {
+                System.err.println("Error writing PDF file: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Error Writing File", "An error occurred while writing the PDF file:\n${e.message}")
+            } catch (e: Exception) {
+                System.err.println("An unexpected error occurred during PDF export: ${e.message}")
+                e.printStackTrace()
+                showAlert(AlertType.ERROR, "Export Failed", "Unexpected Error", "An unexpected error occurred during the export process:\n${e.message}")
+            } finally {
+                if (document != null && document.isOpen) {
+                    try {
+                        document.close()
+                    } catch (e: Exception) {
+                        System.err.println("Error closing PDF document in finally block: ${e.message}")
+                        e.printStackTrace()
+                    }
+                }
+            }
+        } else {
+            println("PDF export cancelled by user.")
+        }
+    }
+
+    // (Old, basic PDF exportation method)
+    /*
     @FXML // Add @FXML annotation
     private fun handleExportCurrentMedsPDF() { // Method name remains the same
         println("Export Current Meds to PDF menu item clicked (OpenPDF - List Format).")
@@ -952,6 +1071,7 @@ class MediChartController {
             println("PDF export cancelled by user.")
         }
     }
+    */
 
 
 
