@@ -686,5 +686,35 @@ class DatabaseManager {
         } ?: System.err.println("Failed to update past medication ID ${pastMedication.id}: Could not get database connection.")
     }
 
-    // TODO: Implement delete methods for medications and surgeries
+    // Add a companion object to hold static-like helper methods
+    companion object {
+        /**
+         * Formats a single DateRange object into a user-friendly string (e.g., "YYYY-MM-DD to YYYY-MM-DD").
+         * If dates are null, handles "Ongoing" or "Unknown"
+         * @param dateRange The DateRange object to format
+         * @return A formatted string representation of the DateRange
+         */
+        fun formatDateRange(dateRange: PastMedication.DateRange): String {
+            val start = dateRange.startDate
+            val end = dateRange.endDate
+
+            return when {
+                start != null && end != null -> "$start to $end"
+                start != null && end == null -> "$start to Ongoing"
+                start == null && end != null -> "Unknown Start to $end"
+                else -> "No Dates Specified"
+            }
+        }
+
+        /**
+         * Formats a list of DateRange objects into a single user-friendly srting.
+         * Joins individual date range strings with a separator.
+         * @param dateRanges The list of DateRange objects, can be null
+         * @return A formatted string representation of the list of date ranges, or "" if the list is null or empty
+         */
+        fun formatAllDateRanges(dateRange: List<PastMedication.DateRange>?): String {
+            // If the list is null/empty, return an empty string; otherwise, format each DateRange in the list using formatDateRange and join them with "; ".
+            return dateRange?.joinToString("; ") { formatDateRange(it) } ?: ""
+        }
+    }
 }
