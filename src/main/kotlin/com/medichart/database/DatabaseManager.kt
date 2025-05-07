@@ -714,7 +714,7 @@ class DatabaseManager {
          */
         fun formatAllDateRanges(dateRange: List<PastMedication.DateRange>?): String {
             // If the list is null/empty, return an empty string; otherwise, format each DateRange in the list using formatDateRange and join them with "; ".
-            return dateRange?.joinToString("; ") { formatDateRange(it) } ?: ""
+            return dateRange?.joinToString("\n") { formatDateRange(it) } ?: ""
         }
     }
 }

@@ -166,7 +166,6 @@ class EditDateRangeController {
     /**
      * Handles the action when the "Add Range" button is clicked.
      * Opens a dialog to add a single DateRange.
-     * <-- IMPLEMENTATION -->
      */
     @FXML // <-- Add FXML annotation
     private fun handleAddRange() { // <-- ADD THIS METHOD (Implementation for adding)
@@ -182,22 +181,24 @@ class EditDateRangeController {
             val newDateRange = dialogController.editedDateRange
 
             if (newDateRange != null) {
-                // Optional: Basic validation - don't add a completely empty range unless explicitly allowed
-                if (newDateRange.startDate != null || newDateRange.endDate != null) {
-                    // Add the new DateRange to the ObservableList
-                    dateRangesData.add(newDateRange)
-                    // Optional: Reselect the newly added item
-                    dateRangesTable.selectionModel.select(newDateRange)
-                    // Use dbManager to serialize for debug print (dbManager is available via the property)
-                    println("New Date Range added: ${dbManager?.serializeDateRanges(listOf(newDateRange))}")
-                } else {
-                    println("Attempted to add an empty date range - ignored.")
-                }
+                // Add the new DateRange to the ObservableList
+                dateRangesData.add(newDateRange)
+                // Optional: Reselect the newly added item
+                dateRangesTable.selectionModel.select(newDateRange)
+                // Use dbManager to serialize for debug print (dbManager is available via the property)
+                println("New Date Range added: ${dbManager?.serializeDateRanges(listOf(newDateRange))}")
             } else {
-                println("Single Date Range dialog cancelled or failed.")
+                // Shouldn't happen but handled defensively
+                System.err.println("Warning: Single Date Range dialog saved successfully, but returned null data.")
             }
         } else {
-            println("Single Date Range dialog cancelled or failed.")
+            // This runs if dialogInfo is null (loading failed) OR dialogController.first.isSavedSuccessful is false (under clicked Cancel in nested dialog)
+            println("Single Date Range dialog cancelled or failed (loading or save cancelled).")
+            if (dialogController == null) { // Specifically handle the care where loading the dialog failed
+                System.err.println("Error loading Single Date Range Editor dialog.")
+                // Optionally show an error to the user
+                showAlert(AlertType.ERROR, "Error", "Failed to Load Dialog", "Could not open the date range editor.")
+            }
         }
     }
 
@@ -209,49 +210,40 @@ class EditDateRangeController {
     @FXML // <-- Add FXML annotation
     private fun handleEditRange() { // <-- ADD THIS METHOD (Implementation for editing)
         println("Edit Range button clicked.")
-        // Get the selected item from the TableView
         val selectedRange = dateRangesTable.selectionModel.selectedItem
 
         if (selectedRange != null) {
-            // Use the helper to load and show the single date range editor dialog
+            // Get the selected item from the TableView
             val dialogController = loadAndShowNestedDialog<EditSingleDateRangeController>(
                 "/com/medichart/gui/EditSingleDateRangeDialog.fxml",
                 "Edit Date Range"
             )
 
-            // Pass the selected DateRange data to the dialog controller BEFORE showing it
-            // Call setDateRangeData AFTER getting the controller but BEFORE showAndWait() in the helper
-            // Pass a COPY of the selected range to prevent modifying the original directly before saving in the sub-dialog
-            dialogController?.setDateRangeData(selectedRange.copy()) // <-- Pass a copy
+            if (dialogController != null) {
+                dialogController.setDateRangeData(selectedRange.copy())
 
-            // The loadAndShowNestedDialog helper already called showAndWait(), so handle result here
-            if (dialogController != null && dialogController.isSavedSuccessful) {
-                val updatedDateRange = dialogController.editedDateRange
-
-                // Find the index of the original selected item
-                val index = dateRangesData.indexOf(selectedRange)
-                if (index >= 0) {
-                    if (updatedDateRange != null && (updatedDateRange.startDate != null || updatedDateRange.endDate != null)) {
-                        // If the updated range is valid, replace the original item with the updated one
-                        dateRangesData[index] = updatedDateRange
-                        // Optional: Reselect the updated item
-                        dateRangesTable.selectionModel.select(updatedDateRange)
-                        // Use dbManager to serialize for debug print
-                        println("Date Range updated: ${dbManager?.serializeDateRanges(listOf(updatedDateRange))}")
+                if (dialogController.isSavedSuccessful) {
+                    val updatedDateRange = dialogController.editedDateRange
+                    val index = dateRangesData.indexOf(selectedRange)
+                    if (index >= 0) {
+                        if (updatedDateRange != null) {
+                            dateRangesData[index] = updatedDateRange
+                            println("Date Range updated: ${dbManager?.serializeDateRanges(listOf(updatedDateRange))}")
+                        } else {
+                            System.err.println("Warning: Single Date Range dialog saved successfully, but returned null data. Removing original range.") // Message for null updatedRange
+                            dateRangesData.removeAt(index)
+                        }
                     } else {
-                        // If the updated range is null or empty (dates cleared in single editor), remove the original range
-                        dateRangesData.removeAt(index)
-                        println("Date Range cleared in editor - removing original range.")
+                        println("Edit Date Range dialog cancelled.")
                     }
                 } else {
-                    System.err.println("Error: Could not find selected date range in list for update.")
+                    System.err.println("Failed to load the Single Date Range Editor dialog for editing.")
+                    // Optionally show an error to the user
+                    showAlert(AlertType.ERROR, "Error", "Failed to Load Dialog", "Could not open the date range editor.")
                 }
             } else {
-                println("Edit Date Range dialog cancelled or failed.")
+                showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a date range to edit.")
             }
-        } else {
-            // Show a warning if no item is selected
-            showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a date range to edit.")
         }
     }
 
