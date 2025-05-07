@@ -570,7 +570,7 @@ class DatabaseManager {
      * @param physician The Physician object to add (ID is ignored for insertion)
      * @return The generated ID of the new record, or -1 if insertion fails
      */
-    fun addPhysicians(physician: Physician): Long {
+    fun addPhysician(physician: Physician): Long {
         val sql = """
             INSERT INTO physicians(name, specialty, phone, fax, email, address, notes)
             VALUES(?, ?, ?, ?, ?, ?, ?);

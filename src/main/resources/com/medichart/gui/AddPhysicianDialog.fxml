@@ -20,32 +20,32 @@
     </padding>
     <children>
         <HBox alignment="CENTER_LEFT" spacing="10.0">
-            <Label text="Name:" prefWidth="80.0" />
-            <TextField fx:id="nameField" HBox.hgrow="ALWAYS" />
+            <Label text="Name:" prefWidth="60.0" />
+            <TextField fx:id="nameField" prefWidth="100.0" HBox.hgrow="ALWAYS" />
         </HBox>
         <HBox alignment="CENTER_LEFT" spacing="10.0">
-            <Label text="Specialty:" prefWidth="80.0" />
-            <TextField fx:id="specialtyField" HBox.hgrow="ALWAYS" />
+            <Label text="Specialty:" prefWidth="60.0" />
+            <TextField fx:id="specialtyField" prefWidth="100.0" HBox.hgrow="ALWAYS" />
         </HBox>
         <HBox alignment="CENTER_LEFT" spacing="10.0">
-            <Label text="Phone:" prefWidth="80.0" />
-            <TextField fx:id="phoneField" HBox.hgrow="ALWAYS" />
+            <Label text="Phone:" prefWidth="60.0" />
+            <TextField fx:id="phoneField" prefWidth="100.0" HBox.hgrow="ALWAYS" />
         </HBox>
         <HBox alignment="CENTER_LEFT" spacing="10.0">
-            <Label text="Fax:" prefWidth="80.0" />
-            <TextField fx:id="faxField" HBox.hgrow="ALWAYS" />
+            <Label text="Fax:" prefWidth="60.0" />
+            <TextField fx:id="faxField" prefWidth="100.0" HBox.hgrow="ALWAYS" />
         </HBox>
         <HBox alignment="CENTER_LEFT" spacing="10.0">
-            <Label text="Email:" prefWidth="80.0" />
-            <TextField fx:id="emailField" HBox.hgrow="ALWAYS" />
+            <Label text="Email:" prefWidth="60.0" />
+            <TextField fx:id="emailField" prefWidth="100.0" HBox.hgrow="ALWAYS" />
         </HBox>
         <HBox alignment="CENTER_LEFT" spacing="10.0">
-            <Label text="Address:" prefWidth="80.0" />
-            <TextArea fx:id="addressArea" prefRowCount="3" HBox.hgrow="ALWAYS" wrapText="true" />
+            <Label text="Address:" prefWidth="60.0" />
+            <TextArea fx:id="addressArea" prefWidth="100.0" prefRowCount="3" HBox.hgrow="ALWAYS" wrapText="true" />
         </HBox>
         <HBox alignment="CENTER_LEFT" spacing="10.0">
-            <Label text="Notes" prefWidth="80.0" />
-            <TextArea fx:id="notesArea" prefRowCount="4" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" wrapText="true" />
+            <Label text="Notes" prefWidth="60.0" />
+            <TextArea fx:id="notesArea" prefWidth="100.0" prefRowCount="4" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" wrapText="true" />
         </HBox>
         <HBox alignment="CENTER_RIGHT" spacing="10.0">
             <Button mnemonicParsing="false" onAction="#handleSaveButton" text="Save" />

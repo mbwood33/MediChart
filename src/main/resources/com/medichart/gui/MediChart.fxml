@@ -53,9 +53,6 @@
                                                 <Button mnemonicParsing="false" onAction="#handleEditMedication" text="Edit Medication" />
                                                 <Button mnemonicParsing="false" onAction="#handleArchiveMedication" text="Archive Medication" />
                                                 <Button mnemonicParsing="false" onAction="#handleDeleteCurrentMedication" text="Delete Selected" />
-                                                <Region HBox.hgrow="ALWAYS" />
-                                                <Label text="Sort By:" />
-                                                <Button mnemonicParsing="false" onAction="#handleSortByBrandName" text="Brand Name" />
                                             </children>
                                         </HBox>
                                     </children>

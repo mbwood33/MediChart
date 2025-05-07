@@ -6,6 +6,7 @@ import com.medichart.model.PastMedication
 import com.medichart.model.PastMedication.DateRange
 import com.medichart.model.Surgery
 import com.medichart.model.Physician
+import com.medichart.controller.AddPhysicianController
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
@@ -51,6 +52,8 @@ import com.lowagie.text.Element
 import com.lowagie.text.pdf.draw.LineSeparator
 import com.sun.javafx.fxml.expression.Expression.add
 import javafx.beans.property.Property
+import javafx.scene.Parent
+import kotlin.Pair
 
 /**
  * Controller class for the main MediChart GUI.
@@ -751,13 +754,57 @@ class MediChartController {
 
     @FXML
     private fun handleAddPhysician() {
-        println("Add Physician button clicked (Handler not fully implemented).")
-        // TODO: Implement loading and showing the Add Physician Dialog (Phase 4, Step 5)
-        // TODO: Get new Physician data from dialog result
-        // TODO: Call dbManager.addPhysician(...)
-        // TODO: Call loadPhysicians() to refresh the table
-        showAlert(AlertType.INFORMATION, "TODO", "Add Physician", "Add Physician functionality is not yet implemented.") // Placeholder alert
+        println("Add Physician button clicked.")
+
+        // --- Load and Show the Add Physician Dialog ---
+        val ownerStage = currentMedicationsTable.scene.window as? Stage
+
+        val dialogInfo = loadDialog<AddPhysicianController>(
+            "/com/medichart/gui/AddPhysicianDialog.fxml", // Path to the FXML file
+            "Add New Physician", // Title for the dialog window
+            ownerStage // Set the main window as the owner for modality
+        )
+
+        // --- Handle the result after the dialog is loaded and potentially shown ---
+        // Check if the dialog was loaded successfully (dialogInfo is not null)
+        if (dialogInfo != null) {
+            val dialogController = dialogInfo.first // Get the controller instance
+            val dialogStage = dialogInfo.second   // Get the dialog stage reference
+
+            dialogStage.showAndWait()
+
+            // --- Process the result from the dialog ---
+            if (dialogController.isSavedSuccessful) {
+                val newPhysician = dialogController.physicianData
+
+                // Ensure a Physician object was returned (it should be if saved successfully)
+                if (newPhysician != null) {
+                    val generatedId = dbManager.addPhysician(newPhysician) // Calls the DB method from Step 39
+
+                    // Check if the database insertion was successful (generatedId will be > 0)
+                    if (generatedId != -1L) {
+                        println("Physician added to DB successfully with ID: $generatedId")
+                        loadPhysicians()
+                        // Optional: Select the newly added item in the table (requires finding it by the generatedId)
+                        // val addedPhysician = physiciansData.find { it.id == generatedId }
+                        // physiciansTable.selectionModel.select(addedPhysician)
+                    } else {
+                        System.err.println("Error adding physician to database.")
+                        showAlert(AlertType.ERROR, "Database Error", "Failed to Add Physician", "Could not save the new physician to the database.")
+                    }
+                } else {
+                    // This case should ideally not happen if isSavedSuccessful is true in the dialog
+                    System.err.println("Warning: Add Physician dialog saved successfully, but returned null data.")
+                    showAlert(AlertType.WARNING, "Internal Error", "Save Data Missing", "The dialog saved, but no physician data was returned.")
+                }
+            } else {
+                println("Add Physician dialog cancelled.")
+            }
+        } else {
+            showAlert(AlertType.ERROR, "Error Loading Dialog", "Could not open the Add Physician dialog.", "An error occurred while opening the dialog.")
+        }
     }
+
 
     @FXML
     private fun handleEditPhysician() {
@@ -1123,6 +1170,54 @@ class MediChartController {
                 text = DatabaseManager.formatAllDateRanges(item)
                 graphic = null
             }
+        }
+    }
+
+    /**
+     * Helper function to load an FXML file and create a modal dialog stage.
+     * Does NOT show the dialog; returns the controller and stage for the caller to manage.
+     * Sets the owner of the dialog to the specified owner stage (makes it modal relative to the owner).
+     * @param fxmlPath The path to the FXML file (e.g., "/com/medichart/gui/AddPhysicianDialog.fxml").
+     * @param title The title for the dialog window.
+     * @param owner The Stage that owns this dialog (makes it modal relative to this owner), or null for no owner.
+     * @return A Pair containing the controller of the loaded FXML and the dialog Stage, or null if loading fails.
+     */
+    private fun <T> loadDialog(fxmlPath: String, title: String, owner: Stage?): Pair<T, Stage>? {
+        try {
+            // Load the FXML file
+            val fxmlLoader = FXMLLoader(javaClass.getResource(fxmlPath))
+            val dialogRoot: Parent = fxmlLoader.load() // Use Parent for the root element type
+
+            // Get the controller instance that was created by the FXMLLoader
+            val controller = fxmlLoader.getController<T>()
+
+            // Create a new Stage for the dialog window
+            val dialogStage = Stage()
+            dialogStage.title = title // Set the title bar text
+            dialogStage.initModality(Modality.WINDOW_MODAL) // Make the dialog modal
+            dialogStage.initOwner(owner) // Set the owner stage (makes it modal relative to the owner)
+            dialogStage.scene = Scene(dialogRoot) // Set the scene with the loaded FXML root
+
+            // If the controller has a method to receive the stage (like setDialogStage), call it.
+            // We need to check the specific controller types we expect to load this way.
+            if (controller is AddPhysicianController) {
+                (controller as? AddPhysicianController)?.setDialogStage(dialogStage)
+            }
+            // TODO: Add similar check and call for EditPhysicianController here later when you implement it (Step 46)
+            // if (controller is EditPhysicianController) { controller.setDialogStage(dialogStage) }
+
+            // Return a Pair containing the controller and the dialog stage
+            return Pair(controller, dialogStage)
+
+        } catch (e: IOException) {
+            System.err.println("Error loading dialog FXML: $fxmlPath - ${e.message}")
+            e.printStackTrace()
+            // Return null if loading fails. The caller can handle showing a user alert.
+            return null
+        } catch (e: Exception) {
+            System.err.println("An unexpected error occurred while loading dialog FXML: $fxmlPath - ${e.message}")
+            e.printStackTrace()
+            return null
         }
     }
 }
