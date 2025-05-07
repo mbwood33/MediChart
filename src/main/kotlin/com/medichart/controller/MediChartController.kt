@@ -5,6 +5,7 @@ import com.medichart.model.Medication
 import com.medichart.model.PastMedication
 import com.medichart.model.PastMedication.DateRange
 import com.medichart.model.Surgery
+import com.medichart.model.Physician
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
@@ -38,9 +39,6 @@ import javafx.stage.FileChooser
 import java.io.BufferedWriter
 import java.io.FileWriter
 import java.io.File
-
-
-
 import com.lowagie.text.Document
 import com.lowagie.text.Paragraph
 import com.lowagie.text.pdf.PdfWriter
@@ -52,6 +50,7 @@ import com.lowagie.text.Phrase
 import com.lowagie.text.Element
 import com.lowagie.text.pdf.draw.LineSeparator
 import com.sun.javafx.fxml.expression.Expression.add
+import javafx.beans.property.Property
 
 /**
  * Controller class for the main MediChart GUI.
@@ -93,6 +92,16 @@ class MediChartController {
     @FXML lateinit var surgeryDateColumn: TableColumn<Surgery, String>
     @FXML lateinit var surgerySurgeonColumn: TableColumn<Surgery, String>
 
+    // FXML elements for the Physicians Table
+    @FXML lateinit var physiciansTable: TableView<Physician>
+    @FXML lateinit var physicianNameColumn: TableColumn<Physician, String>
+    @FXML lateinit var physicianSpecialtyColumn: TableColumn<Physician, String?>
+    @FXML lateinit var physicianPhoneColumn: TableColumn<Physician, String?>
+    @FXML lateinit var physicianFaxColumn: TableColumn<Physician, String?>
+    @FXML lateinit var physicianEmailColumn: TableColumn<Physician, String?>
+    @FXML lateinit var physicianAddressColumn: TableColumn<Physician, String?>
+    @FXML lateinit var physicianNotesColumn: TableColumn<Physician, String?>
+
     // FXML elements for Buttons (added 5/3/25)
     @FXML lateinit var addMedicationButton: Button
     @FXML lateinit var editMedicationButton: Button
@@ -102,10 +111,14 @@ class MediChartController {
     @FXML lateinit var editPastMedicationButton: Button
     @FXML lateinit var unarchiveButton: Button
     @FXML lateinit var deletePastMedicationButton: Button
+    @FXML lateinit var addPhysicianButton: Button
+    @FXML lateinit var editPhysicianButton: Button
+    @FXML lateinit var deletePhysicianButton: Button
 
     private lateinit var currentMedicationsData: ObservableList<Medication>
     private lateinit var pastMedicationsData: ObservableList<PastMedication>
     private lateinit var surgeriesData: ObservableList<Surgery>
+    private lateinit var physiciansData: ObservableList<Physician>
 
     /**
      * This method is called by the application entry point (MediChartApp)
@@ -120,6 +133,7 @@ class MediChartController {
         loadCurrentMedications()
         loadPastMedications()
         loadSurgeries()
+        loadPhysicians()
     }
 
     /**
@@ -182,8 +196,22 @@ class MediChartController {
         // TODO: (Future) Implement custom cell factory for surgeryDateColumn (DatePickerTableCell)
         // TODO: (Future) Add inline editing for Surgeries table
 
+        // Set up cell value factories for the Physicians TableView columns
+        physicianNameColumn.cellValueFactory = PropertyValueFactory("name")
+        physicianSpecialtyColumn.cellValueFactory = PropertyValueFactory("specialty")
+        physicianPhoneColumn.cellValueFactory = PropertyValueFactory("phone")
+        physicianFaxColumn.cellValueFactory = PropertyValueFactory("fax")
+        physicianEmailColumn.cellValueFactory = PropertyValueFactory("email")
+        physicianAddressColumn.cellValueFactory = PropertyValueFactory("address")
+        physicianNotesColumn.cellValueFactory = PropertyValueFactory("notes")
+
+        // TODO: Optional: Implement custom cell factories for word wrap on Notes or other formatting if needed later (Task A.2)
+        // TODO: Optional: Implement custom cell factories for clickable links (email, phone, address) if needed later
+
         currentMedicationsTable.isEditable = false
         pastMedicationsTable.isEditable = false
+        surgeriesTable.isEditable = false
+        physiciansTable.isEditable = false
 
         // Double-click to open edit medication dialog for current medications table
         currentMedicationsTable.addEventFilter(MouseEvent.MOUSE_CLICKED) { event ->
@@ -231,7 +259,23 @@ class MediChartController {
                 }
             }
         }
+
+        // --- Enforce Double-Click to Open Edit Dialog (Physicians) ---
+        physiciansTable.addEventFilter(MouseEvent.MOUSE_CLICKED) { event ->
+            if (event.clickCount == 2) {
+                val selectedPhysician = physiciansTable.selectionModel.selectedItem
+                if (selectedPhysician != null) {
+                    event.consume()
+                    handleEditPhysician()  // Call the *future* edit dialog handler method
+                }
+            }
+            // TODO: Add logic here if you decide to enable inline editing behavior (if any)
+            // else if (physiciansTable.isEditable && !event.isConsumed) { ... }
+        }
     }
+
+
+
 
     /**
      * Loads current medications from the database and updates the TableView.
@@ -263,6 +307,18 @@ class MediChartController {
         surgeriesData = FXCollections.observableArrayList(surgeries)
         surgeriesTable.items = surgeriesData
         println("Loaded ${surgeries.size} surgeries.")
+    }
+
+    /**
+     * Loads physician records from the database and updates the Physicians TableView
+     * Made public for calling from setupDependencies
+     */
+    fun loadPhysicians() {
+        println("Loading physicians...")
+        val physicians = dbManager.getAllPhysicians()
+        physiciansData = FXCollections.observableArrayList(physicians)
+        physiciansTable.items = physiciansData
+        println("Loaded ${physicians.size} physicians.")
     }
 
     // --- Event Handlers for GUI Actions (Placeholder Methods) ---
@@ -693,25 +749,52 @@ class MediChartController {
         alert.showAndWait()
     }
 
-    // --- Sorting Methods (Placeholder) ---
-    // JavaFX TableView columns are sortable by default when you click their headers,
-    // if the cellValueFactory is set up correctly (as we have done).
-    // These methods are only needed if you want dedicated sort buttons or menu items.
-
-    /**
-     * Sorts the current medications table by Brand Name (A-Z).
-     * Note: TableView columns are sortable by default when clicking headers.
-     * This method shows how programmatic sorting could be done.
-     */
-    // @FXML
     @FXML
-    private fun handleSortByBrandName() {
-        println("Sort by Brand Name button clicked.")
-        // Use the items list and sort in memory
-        val sortedList = currentMedicationsTable.items.sortedWith(compareBy { it.brandName ?: "" }) // Handle null brand names for sorting
-        // Replace the current items with the sorted list
-        currentMedicationsTable.items.setAll(sortedList) // setAll clears and adds all, triggering table update
-        println("Table sorted by Brand Name.")
+    private fun handleAddPhysician() {
+        println("Add Physician button clicked (Handler not fully implemented).")
+        // TODO: Implement loading and showing the Add Physician Dialog (Phase 4, Step 5)
+        // TODO: Get new Physician data from dialog result
+        // TODO: Call dbManager.addPhysician(...)
+        // TODO: Call loadPhysicians() to refresh the table
+        showAlert(AlertType.INFORMATION, "TODO", "Add Physician", "Add Physician functionality is not yet implemented.") // Placeholder alert
+    }
+
+    @FXML
+    private fun handleEditPhysician() {
+        println("Edit Physician button clicked (Handler not fully implemented).")
+        // Get selected item from the physiciansTable
+        val selectedPhysician = physiciansTable.selectionModel.selectedItem
+        if (selectedPhysician != null) {
+            println("Editing Physician: ${selectedPhysician.name}")
+            // TODO: Implement loading and showing the Edit Physician Dialog (Phase 4, Step 6)
+            // TODO: Pass selectedPhysician data to dialog controller
+            // TODO: Get updated Physician data from dialog result
+            // TODO: Call dbManager.updatePhysician(...)
+            // TODO: Call loadPhysicians() to refresh the table
+            showAlert(AlertType.INFORMATION, "TODO", "Edit Physician", "Edit Physician functionality is not yet implemented.") // Placeholder alert
+        } else {
+            println("No physician selected for editing.")
+            // Use showAlert helper
+            showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a physician in the table to edit.")
+        }
+    }
+
+    @FXML
+    private fun handleDeletePhysician() {
+        println("Delete Physician button clicked (Handler not fully implemented).")
+        // Get selected item from physiciansTable
+        val selectedPhysician = physiciansTable.selectionModel.selectedItem
+        if (selectedPhysician != null) {
+            println("Deleting Physician: ${selectedPhysician.name}")
+            // TODO: Optional: Add confirmation dialog (Future Task B.4)
+            // TODO: Call dbManager.deletePhysician(...) (Phase 5, Step 7)
+            // TODO: Call loadPhysicians() to refresh the table (Phase 5, Step 7)
+            showAlert(AlertType.INFORMATION, "TODO", "Delete Physician", "Delete Physician functionality is not yet implemented.") // Placeholder alert
+        } else {
+            println("No physician selected for deletion.")
+            // Use showAlert helper
+            showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a physician in the table to delete.")
+        }
     }
 
     // --- Reporting and Export Methods ---
