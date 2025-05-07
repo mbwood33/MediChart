@@ -3,6 +3,7 @@ package com.medichart.database
 import com.medichart.model.Medication
 import com.medichart.model.PastMedication
 import com.medichart.model.PastMedication.DateRange
+import com.medichart.model.Physician
 import com.medichart.model.Surgery
 import java.sql.*
 import java.time.LocalDate
@@ -88,66 +89,25 @@ class DatabaseManager {
              );
          """.trimIndent()
 
+        val createPhysiciansTable = """
+            CREATE TABLE IF NOT EXISTS physicians (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                specialty TEXT,
+                phone TEXT,
+                fax TEXT,
+                email TEXT,
+                address TEXT,
+                notes TEXT
+            );
+        """.trimIndent()
+
         connect()?.use { conn -> // Use Kotlin's 'use' for auto-closing resources
             conn.createStatement().use { stmt ->
                 stmt.execute(createCurrentMedsTable)
                 stmt.execute(createPastMedsTable)
                 stmt.execute(createSurgeriesTable)
-                // System.out.println("Tables checked/created successfully.") // Optional: for debugging
-
-                val checkEmptySql = "SELECT COUNT(*) FROM current_meds;"
-                val rowCount = stmt.executeQuery(checkEmptySql).use { rs ->
-                    if (rs.next()) rs.getInt(1) else 0 // Get the count from the first column of the result
-                }
-
-                if (rowCount == 0) {
-                    println("Database 'current_meds' table is empty. Inserting sample data.")
-
-                    // Insert sample current medications
-                    val insertSampleMedsSql = """
-                        INSERT INTO current_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, notes, start_date, manufacturer) VALUES
-                        ('Metformin', 'Glucophage', '500 mg', 'Tablet', 'Take with food', 'Type 2 Diabetes', 'Dr. Adams', 'Taking well', '2023-05-10', 'Manufacturer A'),
-                        ('Lisinopril', 'Zestril', '10 mg', 'Tablet', 'Take once daily', 'High Blood Pressure', 'Dr. Smith', null, '2022-11-15', 'Manufacturer B'),
-                        ('Atorvastatin', 'Lipitor', '20 mg', 'Tablet', 'Take at bedtime', 'High Cholesterol', 'Dr. Jones', 'Mild muscle aches initially', '2024-01-20', 'Manufacturer C');
-                    """.trimIndent()
-                    // Use executeUpdate() for INSERT, UPDATE, DELETE
-                    // stmt.executeUpdate(insertSampleMedsSql) // Can use executeUpdate for simple inserts
-
-                    // Or use prepared statements for potentially safer insertion, although for hardcoded samples it's less critical
-                    // Since we have multiple inserts, let's use a Statement or separate PreparedStatements
-                    conn.createStatement().use { insertStmt ->
-                        insertStmt.executeUpdate(insertSampleMedsSql)
-                        println("Sample current medications inserted.")
-                    }
-
-
-                    // Insert sample past medications
-                    val insertSamplePastMedsSql = """
-                         INSERT INTO past_meds(generic_name, brand_name, dosage, dose_form, instructions, reason, prescriber, history_notes, reason_for_stopping, date_ranges, manufacturer) VALUES
-                         ('Amoxicillin', 'Amoxil', '500 mg', 'Capsule', 'Take every 8 hours', 'Bacterial Infection', 'Dr. Chen', 'Caused mild nausea', 'Completed course', '2024-03-01_2024-03-10', 'Manufacturer D'),
-                         ('Omeprazole', 'Prilosec', '20 mg', 'Capsule', 'Take before breakfast', 'Heartburn', 'Dr. Lee', 'Effective, stopped when symptoms resolved', 'Symptoms resolved', '2023-08-01_2023-11-01;2024-01-15_2024-02-15', 'Manufacturer E');
-                     """.trimIndent()
-                    conn.createStatement().use { pastStmt ->
-                        pastStmt.executeUpdate(insertSamplePastMedsSql)
-                        println("Sample past medications inserted.")
-                    }
-
-
-                    // Insert sample surgeries
-                    val insertSampleSurgeriesSql = """
-                         INSERT INTO surgeries(name, date, surgeon) VALUES
-                         ('Appendectomy', '2020-07-10', 'Dr. White'),
-                         ('Knee Arthroscopy', '2022-03-25', 'Dr. Green');
-                     """.trimIndent()
-                    conn.createStatement().use { surgeryStmt ->
-                        surgeryStmt.executeUpdate(insertSampleSurgeriesSql)
-                        println("Sample surgeries inserted.")
-                    }
-
-                    println("Sample data insertion complete.")
-                } else {
-                    println("Database 'current_meds' table contains existing data. Skipping sample data insertion.")
-                }
+                stmt.execute(createPhysiciansTable)
             }
         } ?: System.err.println("Failed to connect to database to create tables.") // Elvis operator for null check
     }
@@ -603,6 +563,131 @@ class DatabaseManager {
         } ?: System.err.println("Failed to connect to database to retrieve surgeries.")
 
         return surgeries
+    }
+
+    /**
+     * Adds a new Physician record to the database
+     * @param physician The Physician object to add (ID is ignored for insertion)
+     * @return The generated ID of the new record, or -1 if insertion fails
+     */
+    fun addPhysicians(physician: Physician): Long {
+        val sql = """
+            INSERT INTO physicians(name, specialty, phone, fax, email, address, notes)
+            VALUES(?, ?, ?, ?, ?, ?, ?);
+        """.trimIndent()
+
+        var generatedId: Long = -1  // Default to -1 to indicate failure
+
+        connect()?.use { conn ->
+            conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS).use { pstmt ->
+                pstmt.setString(1, physician.name)
+                pstmt.setString(2, physician.specialty)
+                pstmt.setString(3, physician.phone)
+                pstmt.setString(4, physician.fax)
+                pstmt.setString(5, physician.email)
+                pstmt.setString(6, physician.address)
+                pstmt.setString(7, physician.notes)
+
+                val affectedRows = pstmt.executeUpdate()
+
+                if (affectedRows > 0) {
+                    pstmt.generatedKeys.use { rs ->
+                        if (rs.next()) {
+                            generatedId = rs.getLong(1) // Get the first column of the generated key result set
+                        }
+                    }
+                    println("Physician added successfully with ID: $generatedId")
+                } else {
+                    System.err.println("Failed to add physician: No rows affected.")
+                }
+            }
+        } ?: System.err.println("Failed to connect to database to add physician.")
+        return generatedId
+    }
+
+    /**
+     * Retrieve all Physician records from the database
+     * @return A list of Physician objects
+     */
+    fun getAllPhysicians(): List<Physician> {
+        val sql = "SELECT id, name, specialty, phone, fax, email, address, notes FROM physicians;"
+        val physicians = mutableListOf<Physician>()
+
+        connect()?.use { conn ->
+            conn.createStatement().use { stmt ->
+                stmt.executeQuery(sql).use { rs ->
+                    while (rs.next()) {
+                        val id = rs.getLong("id")
+                        val name = rs.getString("name")
+                        val specialty = rs.getString("specialty")
+                        val phone = rs.getString("phone")
+                        val fax = rs.getString("fax")
+                        val email = rs.getString("email")
+                        val address = rs.getString("address")
+                        val notes = rs.getString("notes")
+                        physicians.add(Physician(id, name, specialty, phone, fax, email, address, notes))
+                    }
+                    println("Loaded ${physicians.size} physicians.")
+                }
+            }
+        } ?: System.err.println("Failed to connect to database to get all physicians.")
+
+        return physicians
+    }
+
+    /**
+     * Updates an existing Physician record in the database
+     * @param physician The Physician object with updated data (ID is required to identify the record)
+     */
+    fun updatePhysician(physician: Physician) {
+        val sql = """
+            UPDATE physicians
+            SET name = ?, specialty = ?, phone = ?, fax = ?, email = ?, address = ?, notes = ?
+            WHERE id = ?;
+        """.trimIndent()
+
+        connect()?.use { conn ->
+            conn.prepareStatement(sql).use { pstmt ->
+                pstmt.setString(1, physician.name)
+                pstmt.setString(2, physician.specialty)
+                pstmt.setString(3, physician.phone)
+                pstmt.setString(4, physician.fax)
+                pstmt.setString(5, physician.email)
+                pstmt.setString(6, physician.address)
+                pstmt.setString(7, physician.notes)
+                pstmt.setLong(8, physician.id)
+
+                val affectedRows = pstmt.executeUpdate()
+
+                if (affectedRows > 0) {
+                    println("Physician updated successfully for ID: ${physician.id}")
+                } else {
+                    System.err.println("Failed to update physician with ID: ${physician.id}. Record not found?")
+                }
+            }
+        } ?: System.err.println("Failed to connect to database to update physician.")
+    }
+
+    /**
+     * Deletes a Physician record from the database by ID
+     * @param id The ID of the Physician record to delete
+     */
+    fun deletePhysician(id: Long) {
+        val sql = "DELETE FROM physicians WHERE id = ?;"
+
+        connect()?.use { conn ->
+            conn.prepareStatement(sql).use { pstmt ->
+                pstmt.setLong(1, id)
+
+                val affectedRows = pstmt.executeUpdate()
+
+                if (affectedRows > 0) {
+                    println("Physician deleted successfully for ID: $id")
+                } else {
+                    System.err.println("Failed to delete physician with ID: $id. Record not found?")
+                }
+            }
+        } ?: System.err.println("Failed to connect to database to delete physician.")
     }
 
     /**
