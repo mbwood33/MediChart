@@ -7,6 +7,7 @@ import com.medichart.model.Physician
 import com.medichart.model.Surgery
 import java.sql.*
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
 /**
@@ -563,6 +564,49 @@ class DatabaseManager {
         } ?: System.err.println("Failed to connect to database to retrieve surgeries.")
 
         return surgeries
+    }
+
+    /**
+     * Updates an existing Surgery record in the database
+     * @param surgery The Surgery object with updated data
+     */
+    fun updateSurgery(surgery: Surgery) {
+        val sql = """
+            UPDATE surgeries
+            SET name = ?, date = ?, surgeon = ?
+            WHERE id = ?;
+        """.trimIndent()
+
+        connect()?.use { conn ->
+            conn.prepareStatement(sql).use { pstmt ->
+                pstmt.setString(1, surgery.name)
+                pstmt.setString(2, surgery.date?.format(DateTimeFormatter.ISO_DATE))
+                pstmt.setString(3, surgery.surgeon)
+                pstmt.setInt(4, surgery.id)
+
+                val affectedRows = pstmt.executeUpdate()
+
+                if (affectedRows > 0) {
+                    println("Surgery updated successfully for ID: ${surgery.id}")
+                } else {
+                    System.err.println("Failed to update surgery with ID: ${surgery.id}")
+                }
+            }
+        } ?: System.err.println("Failed to connect to database to update surgery.")
+    }
+
+    /**
+     * Deletes a Surgery record from the database  by ID
+     * @param id The ID of the Surgery record to delete
+     */
+    fun deleteSurgery(id: Int) {
+        val sql = "DELETE FROM surgeries WHERE id = ?"
+
+        connect()?.use { conn ->
+            conn.prepareStatement(sql).use { pstmt ->
+                pstmt.setInt(1, id)
+            }
+        } ?: System.err.println("Failed to connect to database to delete surgery.")
     }
 
     /**
