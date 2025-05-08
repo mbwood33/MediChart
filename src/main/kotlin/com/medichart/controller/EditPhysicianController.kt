@@ -50,12 +50,13 @@ class EditPhysicianController {
      */
     fun setDialogStage(stage: Stage) {
         this.dialogStage = stage
+        println("DEBUG: setsDialogStage called with stage: $stage") // DEBUG
 
         // Optional: Handle the window's close button (the X in the title bar) to behave like Cancel
         dialogStage?.setOnCloseRequest { event ->
             isSavedSuccessful = false
             updatedPhysicianData = null
-            println("Edit Physician Dialog closed via window button (treated as Cancel).")
+            println("DEBUG: Edit Physician Dialog closed via window button (treated as Cancel).")   // DEBUG
         }
     }
 
@@ -110,7 +111,10 @@ class EditPhysicianController {
         )
 
         isSavedSuccessful = true
+
+        println("DEBUG: Save button logic finished. Attempting to call closeDialog(). dialogStage is: ${this.dialogStage}") // DEBUG
         closeDialog()
+        println("DEBUG: After calling closeDialog().")  // DEBUG
     }
 
     /**
@@ -132,7 +136,9 @@ class EditPhysicianController {
      * Uses the dialogStage property set by the caller
      */
     private fun closeDialog() {
+        println("DEBUG: closeDialog() method called. Current dialogStage is: ${this.dialogStage}")  // DEBUG
         dialogStage?.close()
+        println("DEBUG: After dialogStage?.close() call.")  // DEBUG
     }
 
     /**

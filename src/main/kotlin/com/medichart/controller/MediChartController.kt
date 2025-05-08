@@ -7,6 +7,7 @@ import com.medichart.model.PastMedication.DateRange
 import com.medichart.model.Surgery
 import com.medichart.model.Physician
 import com.medichart.controller.AddPhysicianController
+import com.medichart.controller.EditPhysicianController
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
@@ -808,20 +809,46 @@ class MediChartController {
 
     @FXML
     private fun handleEditPhysician() {
-        println("Edit Physician button clicked (Handler not fully implemented).")
-        // Get selected item from the physiciansTable
+        println("Edit Physician button clicked.")
+
+        val ownerStage = currentMedicationsTable.scene.window as? Stage
         val selectedPhysician = physiciansTable.selectionModel.selectedItem
+
+        val dialogInfo = loadDialog<EditPhysicianController>(
+            "/com/medichart/gui/EditPhysicianDialog.fxml",
+            "Edit Physician",
+            ownerStage
+        )
+
         if (selectedPhysician != null) {
-            println("Editing Physician: ${selectedPhysician.name}")
-            // TODO: Implement loading and showing the Edit Physician Dialog (Phase 4, Step 6)
-            // TODO: Pass selectedPhysician data to dialog controller
-            // TODO: Get updated Physician data from dialog result
-            // TODO: Call dbManager.updatePhysician(...)
-            // TODO: Call loadPhysicians() to refresh the table
-            showAlert(AlertType.INFORMATION, "TODO", "Edit Physician", "Edit Physician functionality is not yet implemented.") // Placeholder alert
+            println("Attempting to edit Physician: ${selectedPhysician.name}")
+
+            if (dialogInfo != null) {
+                val dialogController = dialogInfo.first // Get the controller instance (non-nullable here)
+                val dialogStage = dialogInfo.second   // Get the dialog stage reference (non-nullable Stage here)
+
+                dialogController.setPhysicianData(selectedPhysician.copy()) // Pass a copy to avoid modifying original data prematurely
+                dialogStage.showAndWait() // <-- CALL showAndWait() HERE IN THE HANDLER METHOD
+
+                if (dialogController.isSavedSuccessful) { // Check if the user clicked Save in the dialog
+                    val updatedPhysician = dialogController.updatedPhysicianData // Get the updated Physician object (Physician?)
+
+                    if (updatedPhysician != null) {
+                        dbManager.updatePhysician(updatedPhysician) // Calls the DB method from Step 39
+                        println("Physician updated in DB: ${updatedPhysician.name} (ID: ${updatedPhysician.id})")
+                        loadPhysicians() // Call the method to reload data into the table (implemented in Step 41)
+                    } else {
+                        System.err.println("Warning: Edit Physician dialog saved successfully, but returned null data.")
+                        showAlert(AlertType.WARNING, "Internal Error", "Save Data Missing", "The dialog saved, but no physician data was returned.")
+                    }
+                } else {
+                    println("Edit Physician dialog cancelled.")
+                }
+            } else {
+                showAlert(AlertType.ERROR, "Error Loading Dialog", "Could not open the Edit Physician dialog.", "An error occurred while opening the dialog.")
+            }
         } else {
             println("No physician selected for editing.")
-            // Use showAlert helper
             showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a physician in the table to edit.")
         }
     }
@@ -1190,6 +1217,7 @@ class MediChartController {
 
             // Get the controller instance that was created by the FXMLLoader
             val controller = fxmlLoader.getController<T>()
+            println("DEBUG: loadDialog: Controller type is: ${controller?.javaClass?.name ?: "null"}")  // DEBUG
 
             // Create a new Stage for the dialog window
             val dialogStage = Stage()
@@ -1202,6 +1230,9 @@ class MediChartController {
             // We need to check the specific controller types we expect to load this way.
             if (controller is AddPhysicianController) {
                 (controller as? AddPhysicianController)?.setDialogStage(dialogStage)
+            }
+            if (controller is EditPhysicianController) {
+                (controller as? EditPhysicianController)?.setDialogStage(dialogStage)
             }
             // TODO: Add similar check and call for EditPhysicianController here later when you implement it (Step 46)
             // if (controller is EditPhysicianController) { controller.setDialogStage(dialogStage) }
