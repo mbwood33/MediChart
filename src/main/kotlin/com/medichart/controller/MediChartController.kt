@@ -1333,8 +1333,11 @@ class MediChartController {
             if (controller is EditPhysicianController) {
                 (controller as? EditPhysicianController)?.setDialogStage(dialogStage)
             }
+            if (controller is AddSurgeryController) {
+                (controller as? AddSurgeryController)?.setDialogStage(dialogStage)
+            }
             // TODO: Add similar check and call for EditPhysicianController here later when you implement it (Step 46)
-            // if (controller is EditPhysicianController) { controller.setDialogStage(dialogStage) }
+
 
             // Return a Pair containing the controller and the dialog stage
             return Pair(controller, dialogStage)

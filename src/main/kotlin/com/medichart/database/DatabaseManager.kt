@@ -613,12 +613,24 @@ class DatabaseManager {
      */
     fun deleteSurgery(id: Long) {
         val sql = "DELETE FROM surgeries WHERE id = ?"
+        try {
+            connect()?.use { conn ->
+                conn.prepareStatement(sql).use { pstmt ->
+                    pstmt.setLong(1, id)
 
-        connect()?.use { conn ->
-            conn.prepareStatement(sql).use { pstmt ->
-                pstmt.setLong(1, id)
+                    val affectedRows = pstmt.executeUpdate()
+
+                    if (affectedRows > 0) {
+                        println("Surgery with ID $id deleted successfully from DB.")
+                    } else {
+                        println("No surgery found with ID $id for deletion.")
+                    }
+                }
             }
-        } ?: System.err.println("Failed to connect to database to delete surgery.")
+        } catch (e: SQLException) {
+            System.err.println("Database error deleting surgery with ID $id: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     /**
