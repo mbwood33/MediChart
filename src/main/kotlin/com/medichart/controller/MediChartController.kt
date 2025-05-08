@@ -731,7 +731,6 @@ class MediChartController {
                     // If the table is now empty, clear selection
                     pastMedicationsTable.selectionModel.clearSelection()
                 }
-            } else {
             }
         } else {
             val alert = Alert(AlertType.INFORMATION)

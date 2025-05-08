@@ -117,7 +117,9 @@
                                         </TableView>
                                         <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
                                             <children>
-                                                <Button mnemonicParsing="false" onAction="#handleAddSurgery" text="Add Surgery" />
+                                                <Button fx:id="addSurgeryButton" mnemonicParsing="false" onAction="#handleAddSurgery" text="Add Surgery" />
+                                                <Button fx:id="editSurgeryButton" mnemonicParsing="false" onAction="#handleEditSurgery" text="Edit Surgery" />
+                                                <Button fx:id="deleteSurgeryButton" mnemonicParsing="false" onAction="#deleteSurgery" text="Delete Surgery" />
                                             </children>
                                         </HBox>
                                     </children>
