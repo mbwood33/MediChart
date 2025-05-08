@@ -54,6 +54,7 @@ import com.lowagie.text.pdf.draw.LineSeparator
 import com.sun.javafx.fxml.expression.Expression.add
 import javafx.beans.property.Property
 import javafx.scene.Parent
+import javafx.scene.control.ButtonType
 import kotlin.Pair
 
 /**
@@ -491,24 +492,28 @@ class MediChartController {
         if (selectedMed != null) {
             val selectedIndex = currentMedicationsTable.selectionModel.selectedIndex    // Get index BEFORE refresh
 
-            // TODO: Add a confirmation dialog here before actually deleting!
-            // e.g., Alert(AlertType.CONFIRMATION, "Are you sure you want to delete {$selectedMed.brandName ?: selectedMed.genericName}?")
-            // If user confirms:
+            val confirmationResult = showAlert(
+                AlertType.CONFIRMATION,
+                "Confirm Delete",
+                "Delete Medication Record?",
+                "Are you sure you want to permanently delete the record for ${selectedMed.genericName}?"
+            )
 
-            println("Delete Medication button called for: ${selectedMed.brandName ?: selectedMed.genericName}")
+            if (confirmationResult == ButtonType.OK) {
+                println("User confirmed delete. Deleting medicaiton with ID: ${selectedMed.id}")
+                dbManager.deleteCurrentMedication(selectedMed.id)
+                println("Medication deleted from DB.")
+                loadCurrentMedications()    // Refresh the current medications table to show the change
 
-            dbManager.deleteCurrentMedication(selectedMed.id)   // Call the database method to delete the record
-            loadCurrentMedications()    // Refresh the current medications table to show the change
-
-            // Select the item at the same index in the updated list, or the last item if index is out of bounds.
-            if (currentMedicationsTable.items.isNotEmpty()) {
-                val newIndexToSelect = if (selectedIndex < currentMedicationsTable.items.size) selectedIndex else currentMedicationsTable.items.size - 1
-                currentMedicationsTable.selectionModel.select(newIndexToSelect)
+                if (currentMedicationsTable.items.isNotEmpty()) {
+                    val newIndexToSelect = if (selectedIndex < currentMedicationsTable.items.size) selectedIndex else currentMedicationsTable.items.size - 1
+                    currentMedicationsTable.selectionModel.select(newIndexToSelect)
+                } else {
+                    currentMedicationsTable.selectionModel.clearSelection() // Clear selection if table is empty
+                }
             } else {
-                currentMedicationsTable.selectionModel.clearSelection() // Clear selection if table is empty
+                println("Delete cancelled by user or dialog closed.")
             }
-
-            println("Current medication deleted.")
         } else {
             println("No medication selected for deletion.")
             // TODO: Show a warning or information dialog to the user (e.g., using javafx.scene.control.Alert)
@@ -700,31 +705,35 @@ class MediChartController {
     @FXML
     private fun handleDeletePastMedication() {
         println("Delete Past Medication button clicked.")
-        val selectedPastMed = pastMedicationsTable.selectionModel.selectedItem
+        val selectedPastMedication = pastMedicationsTable.selectionModel.selectedItem
 
-        if (selectedPastMed != null) {
-            val selectedIndex = pastMedicationsTable.selectionModel.selectedIndex   // Get index BEFORE refresh (past table)
+        if (selectedPastMedication != null) {
+            val selectedIndex = pastMedicationsTable.selectionModel.selectedIndex   // Get index BEFORE refresh
+            println("Attempting to delete Past Medication: ${selectedPastMedication.genericName} (ID: ${selectedPastMedication.id}")
 
-            // TODO: Add a confirmation dialog here before actually deleting past med!
-            // If user confirms:
+            val confirmationResult = showAlert(
+                AlertType.CONFIRMATION,
+                "Confirm Delete",
+                "Delete Medication History Record?",
+                "Are you sure you want to permanently delete the history record for ${selectedPastMedication.genericName}?"
+            )
 
-            println("Delete Past Medication butten clicked for: {${selectedPastMed.brandName ?: selectedPastMed.genericName}")
+            if (confirmationResult == ButtonType.OK) {
+                println("User confirmed delete. Deleting past medication with ID: ${selectedPastMedication.id}")
+                dbManager.unarchiveMedication(selectedPastMedication)
+                loadPastMedications()   // Refresh history table
 
-            dbManager.unarchiveMedication(selectedPastMed)
-            loadPastMedications()   // Refresh history table
-
-            // Select the item at the same index in the updated list, or the last item if index is out of bounds.
-            if (pastMedicationsTable.items.isNotEmpty()) {
-                val newIndexToSelect = if (selectedIndex < pastMedicationsTable.items.size) selectedIndex else pastMedicationsTable.items.size - 1
-                pastMedicationsTable.selectionModel.select(newIndexToSelect)
+                // Select the item at the same index in the updated list, or the last item if index is out of bounds.
+                if (pastMedicationsTable.items.isNotEmpty()) {
+                    val newIndexToSelect = if (selectedIndex < pastMedicationsTable.items.size) selectedIndex else pastMedicationsTable.items.size - 1
+                    pastMedicationsTable.selectionModel.select(newIndexToSelect)
+                } else {
+                    // If the table is now empty, clear selection
+                    pastMedicationsTable.selectionModel.clearSelection()
+                }
             } else {
-                // If the table is now empty, clear selection
-                pastMedicationsTable.selectionModel.clearSelection()
             }
-            println("Past medication deleted.")
         } else {
-            println("No past medication selected for deletion.")
-            // TODO: Show a warning or information dialog to the user
             val alert = Alert(AlertType.INFORMATION)
             alert.title = "No Selection"
             alert.headerText = null
@@ -861,13 +870,19 @@ class MediChartController {
         if (selectedPhysician != null) {
             println("Attempting to delete Physician: ${selectedPhysician.name} (ID: ${selectedPhysician.id})")
 
-            // TODO: Add a confirmation dialog here before deleting (Future Task B.4)
-
-            val physicianToDelete = selectedPhysician.id
-
-            dbManager.deletePhysician(physicianToDelete)
-            println("Physician deleted from DB.")
-            loadPhysicians()
+            val confirmationResult = showAlert(
+                AlertType.CONFIRMATION,
+                "Confirm Delete",
+                "Delete Physician Record",
+                "Are you sure you want to permanently delete the record for ${selectedPhysician.name}?"
+            )
+            if (confirmationResult == ButtonType.OK) {
+                println("User confirmed delete. Deleting physician with ID: ${selectedPhysician.id}")
+                dbManager.deletePhysician(selectedPhysician.id)
+                loadPhysicians()
+            } else {
+                println("Delete cancelled by user or dialog closed.")
+            }
         } else {
             println("No physician selected for deletion.")
             // Use showAlert helper to inform the user
@@ -1178,13 +1193,19 @@ class MediChartController {
      * @param title The title of the alert window.
      * @param header The header text of the alert (can be null)
      * @param content The main content text of the alert
+     * @return The ButtonType clicked by the user, or null if the dialog was closed without clicking a standard button
      */
-    private fun showAlert(alertType: AlertType, title: String, header: String?, content: String) {
+    private fun showAlert(alertType: AlertType, title: String, header: String?, content: String): ButtonType? {
         val alert = Alert(alertType)
         alert.title = title
         alert.headerText = header
         alert.contentText = content
-        alert.showAndWait() // Show the alert and wait for the user to close it
+
+        alert.initOwner(physiciansTable?.scene?.window as? Stage)
+
+        val result = alert.showAndWait()
+
+        return result.orElse(null)
     }
 
     /**
