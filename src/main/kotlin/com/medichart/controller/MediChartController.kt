@@ -763,17 +763,34 @@ class MediChartController {
      */
     @FXML
     private fun handleAddSurgery() {
-        println("Add Surgery button clicked (Implementation needed)")
-        // TODO: Implement getting input from the user (e.g., show a form/dialog)
-        // TODO: Create a new Surgery object from input.
-        // TODO: Call dbManager.addSurgery(newSurgeryObject).
-        // TODO: Call loadSurgeries() to refresh the table.
-        val alert = Alert(AlertType.INFORMATION) // Placeholder
-        alert.title = "Add Surgery (TODO)"
-        alert.headerText = null
-        alert.contentText = "Add Surgery functionality is not yet implemented."
-        alert.initOwner(surgeriesTable.scene.window)
-        alert.showAndWait()
+        println("Add Surgery button clicked.")
+
+        val ownerStage = surgeriesTable.scene.window as? Stage
+
+        val dialogInfo = loadDialog<AddSurgeryController>(
+            "/com/medichart/gui/AddSurgeryDialog.fxml",
+            "Add New Surgery",
+            ownerStage
+        )
+
+        if (dialogInfo != null) {
+            val dialogController = dialogInfo.first
+            val dialogStage = dialogInfo.second
+
+            dialogStage.showAndWait()
+
+            if (dialogController.isSavedSuccessful) {
+                val newSurgery = dialogController.surgeryData
+                if (newSurgery != null) {
+                    val generatedId = dbManager.addSurgery(newSurgery)
+                    if (generatedId != -1L) {
+                        loadSurgeries()
+                    } else {
+                        showAlert(AlertType.ERROR, "Database Error", "Failed to Add Surgery", "Could not save the new surgery to the database.")
+                    }
+                }
+            }
+        }
     }
 
     @FXML

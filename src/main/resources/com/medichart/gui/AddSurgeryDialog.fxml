@@ -31,3 +31,4 @@
             <Button mnemonicParsing="false" onAction="#handleCancelButton" text="Cancel" />
         </HBox>
     </children>
+</VBox>

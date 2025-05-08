@@ -502,22 +502,34 @@ class DatabaseManager {
      * Converts LocalDate date to String for storage.
      * @param surgery The Surgery object to add.
      */
-    fun addSurgery(surgery: Surgery) {
+    fun addSurgery(surgery: Surgery): Long {
+        var generatedId: Long = -1L
+        // val dateFormatter = DateTimeFormatter.ISO_Date (missing import?)
+
         val sql = "INSERT INTO surgeries(name, date, surgeon) VALUES(?,?,?)"
 
-        connect()?.use { conn ->
-            try {
-                    conn.prepareStatement(sql).use { pstmt ->
+        try {
+            connect()?.use { conn ->
+                conn.prepareStatement(sql).use { pstmt ->
                     pstmt.setString(1, surgery.name)
                     pstmt.setString(2, surgery.date?.toString())
                     pstmt.setString(3, surgery.surgeon)
-                    pstmt.executeUpdate()
-                    // System.out.println("Surgery added: ${surgery.name}") // Optional: for debugging
+                    val affectedRows = pstmt.executeUpdate()
+                    if (affectedRows > 0) {
+                        conn.createStatement().use { stmt ->
+                            val rs = stmt.executeQuery("SELECT last_insert_rowid()")
+                            if (rs.next()) {
+                                generatedId = rs.getLong(1)
+                            }
+                        }
+                    }
                 }
-            } catch (e: SQLException) {
-                System.err.println("Error adding surgery: ${e.message}")
             }
-        } ?: System.err.println("Failed to connect to database to add surgery.")
+        } catch(e: SQLException) {
+            System.err.println("Database error adding surgery: ${e.message}")
+            e.printStackTrace()
+        }
+        return generatedId
     }
 
     /**
@@ -549,7 +561,7 @@ class DatabaseManager {
                             }
 
                             val surgery = Surgery(
-                                rs.getInt("id"),
+                                rs.getLong("id"),
                                 rs.getString("name"),
                                 surgeryDate, // <-- PASS the parsed LocalDate? here
                                 rs.getString("surgeon")
@@ -582,7 +594,7 @@ class DatabaseManager {
                 pstmt.setString(1, surgery.name)
                 pstmt.setString(2, surgery.date?.format(DateTimeFormatter.ISO_DATE))
                 pstmt.setString(3, surgery.surgeon)
-                pstmt.setInt(4, surgery.id)
+                pstmt.setLong(4, surgery.id)
 
                 val affectedRows = pstmt.executeUpdate()
 
@@ -599,12 +611,12 @@ class DatabaseManager {
      * Deletes a Surgery record from the database  by ID
      * @param id The ID of the Surgery record to delete
      */
-    fun deleteSurgery(id: Int) {
+    fun deleteSurgery(id: Long) {
         val sql = "DELETE FROM surgeries WHERE id = ?"
 
         connect()?.use { conn ->
             conn.prepareStatement(sql).use { pstmt ->
-                pstmt.setInt(1, id)
+                pstmt.setLong(1, id)
             }
         } ?: System.err.println("Failed to connect to database to delete surgery.")
     }
@@ -838,7 +850,7 @@ class DatabaseManager {
         /**
          * Formats a list of DateRange objects into a single user-friendly srting.
          * Joins individual date range strings with a separator.
-         * @param dateRanges The list of DateRange objects, can be null
+         * @param dateRange The list of DateRange objects, can be null
          * @return A formatted string representation of the list of date ranges, or "" if the list is null or empty
          */
         fun formatAllDateRanges(dateRange: List<PastMedication.DateRange>?): String {
