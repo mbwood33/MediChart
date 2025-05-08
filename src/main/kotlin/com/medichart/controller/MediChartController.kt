@@ -855,18 +855,22 @@ class MediChartController {
 
     @FXML
     private fun handleDeletePhysician() {
-        println("Delete Physician button clicked (Handler not fully implemented).")
+        println("Delete Physician button clicked.")
         // Get selected item from physiciansTable
         val selectedPhysician = physiciansTable.selectionModel.selectedItem
         if (selectedPhysician != null) {
-            println("Deleting Physician: ${selectedPhysician.name}")
-            // TODO: Optional: Add confirmation dialog (Future Task B.4)
-            // TODO: Call dbManager.deletePhysician(...) (Phase 5, Step 7)
-            // TODO: Call loadPhysicians() to refresh the table (Phase 5, Step 7)
-            showAlert(AlertType.INFORMATION, "TODO", "Delete Physician", "Delete Physician functionality is not yet implemented.") // Placeholder alert
+            println("Attempting to delete Physician: ${selectedPhysician.name} (ID: ${selectedPhysician.id})")
+
+            // TODO: Add a confirmation dialog here before deleting (Future Task B.4)
+
+            val physicianToDelete = selectedPhysician.id
+
+            dbManager.deletePhysician(physicianToDelete)
+            println("Physician deleted from DB.")
+            loadPhysicians()
         } else {
             println("No physician selected for deletion.")
-            // Use showAlert helper
+            // Use showAlert helper to inform the user
             showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a physician in the table to delete.")
         }
     }
