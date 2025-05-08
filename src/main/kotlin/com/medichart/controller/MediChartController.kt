@@ -77,6 +77,11 @@ class MediChartController {
     @FXML lateinit var currentStartDateColumn: TableColumn<Medication, LocalDate>
     @FXML lateinit var currentManufacturerColumn: TableColumn<Medication, String>
 
+    @FXML lateinit var addMedicationButton: Button
+    @FXML lateinit var editMedicationButton: Button
+    @FXML lateinit var archiveMedicationButton: Button
+    @FXML lateinit var deleteCurrentMedicationButton: Button
+
     // FXML elements for the Medications History Table
     @FXML lateinit var pastMedicationsTable: TableView<PastMedication>
     @FXML lateinit var pastGenericNameColumn: TableColumn<PastMedication, String>
@@ -91,11 +96,20 @@ class MediChartController {
     @FXML lateinit var pastDateRangesColumn: TableColumn<PastMedication, List<PastMedication.DateRange>>
     @FXML lateinit var pastManufacturerColumn: TableColumn<PastMedication, String>
 
+    @FXML lateinit var addPastMedicationButton: Button
+    @FXML lateinit var editPastMedicationButton: Button
+    @FXML lateinit var unarchiveButton: Button
+    @FXML lateinit var deletePastMedicationButton: Button
+
     // FXML elements for the Surgeries Table
     @FXML lateinit var surgeriesTable: TableView<Surgery>
     @FXML lateinit var surgeryNameColumn: TableColumn<Surgery, String>
     @FXML lateinit var surgeryDateColumn: TableColumn<Surgery, String>
     @FXML lateinit var surgerySurgeonColumn: TableColumn<Surgery, String>
+
+    @FXML lateinit var addSurgeryButton: Button
+    @FXML lateinit var editSurgeryButton: Button
+    @FXML lateinit var deleteSurgeryButton: Button
 
     // FXML elements for the Physicians Table
     @FXML lateinit var physiciansTable: TableView<Physician>
@@ -107,15 +121,6 @@ class MediChartController {
     @FXML lateinit var physicianAddressColumn: TableColumn<Physician, String?>
     @FXML lateinit var physicianNotesColumn: TableColumn<Physician, String?>
 
-    // FXML elements for Buttons (added 5/3/25)
-    @FXML lateinit var addMedicationButton: Button
-    @FXML lateinit var editMedicationButton: Button
-    @FXML lateinit var archiveMedicationButton: Button
-    @FXML lateinit var deleteCurrentMedicationButton: Button
-    @FXML lateinit var addPastMedicationButton: Button
-    @FXML lateinit var editPastMedicationButton: Button
-    @FXML lateinit var unarchiveButton: Button
-    @FXML lateinit var deletePastMedicationButton: Button
     @FXML lateinit var addPhysicianButton: Button
     @FXML lateinit var editPhysicianButton: Button
     @FXML lateinit var deletePhysicianButton: Button
@@ -198,7 +203,7 @@ class MediChartController {
         surgeryDateColumn.cellValueFactory = PropertyValueFactory("date")
         surgerySurgeonColumn.cellValueFactory = PropertyValueFactory("surgeon")
 
-        // TODO: (Future) Implement custom cell factory for surgeryDateColumn (DatePickerTableCell)
+        // TODO: Optional: Implement custom cell factories for Date column formatting if needed (Task A.2)
         // TODO: (Future) Add inline editing for Surgeries table
 
         // Set up cell value factories for the Physicians TableView columns
@@ -261,6 +266,16 @@ class MediChartController {
                             }
                         }
                     }
+                }
+            }
+        }
+
+        surgeriesTable.addEventFilter(MouseEvent.MOUSE_CLICKED) { event ->
+            if (event.clickCount == 2) {
+                val selectedSurgery = surgeriesTable.selectionModel.selectedItem
+                if (selectedSurgery != null) {
+                    event.consume()
+                    handleEditSurgery()
                 }
             }
         }
@@ -759,6 +774,49 @@ class MediChartController {
         alert.contentText = "Add Surgery functionality is not yet implemented."
         alert.initOwner(surgeriesTable.scene.window)
         alert.showAndWait()
+    }
+
+    @FXML
+    private fun handleEditSurgery() {
+        println("Edit Surgery button clicked (Handler not fully implemented).")
+        val selectedSurgery = surgeriesTable.selectionModel.selectedItem // Get the selected Surgery object
+        if (selectedSurgery != null) {
+            println("Editing Surgery: ${selectedSurgery.name}")
+            // TODO: Implement loading and showing the Edit Surgery Dialog (Later step)
+            showAlert(AlertType.INFORMATION, "TODO", "Edit Surgery", "Edit Surgery functionality is not yet implemented.") // Placeholder alert
+        } else {
+            println("No surgery selected for editing.")
+            showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a surgery in the table to edit.")
+        }
+    }
+
+    @FXML
+    private fun handleDeleteSurgery() {
+        println("Delete Surgery button clicked.")
+        val selectedSurgery = surgeriesTable.selectionModel.selectedItem // Get the selected item
+
+        if (selectedSurgery != null) {
+            println("Attempting to delete Surgery: ${selectedSurgery.name} (ID: ${selectedSurgery.id})")
+
+            val confirmationResult = showAlert(
+                AlertType.CONFIRMATION,      // Use CONFIRMATION type for the alert
+                "Confirm Delete",            // Title for the confirmation dialog window
+                "Delete Surgery Record?",  // Header text asking for confirmation
+                "Are you sure you want to permanently delete the record for ${selectedSurgery.name}?" // Content text asking for confirmation
+            )
+
+            if (confirmationResult == ButtonType.OK) {
+                println("User confirmed delete. Deleting surgery with ID: ${selectedSurgery.id}")
+                dbManager.deleteSurgery(selectedSurgery.id) // Calls the DB method
+                println("Surgery deleted from DB.")
+                loadSurgeries() // Call the method to reload data into the table
+            } else {
+                println("Delete cancelled by user or dialog closed.")
+            }
+        } else {
+            println("No surgery selected for deletion.")
+            showAlert(AlertType.INFORMATION, "No Selection", null, "Please select a surgery in the table to delete.")
+        }
     }
 
     @FXML
