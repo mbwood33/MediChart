@@ -119,7 +119,7 @@
                                             <children>
                                                 <Button fx:id="addSurgeryButton" mnemonicParsing="false" onAction="#handleAddSurgery" text="Add Surgery" />
                                                 <Button fx:id="editSurgeryButton" mnemonicParsing="false" onAction="#handleEditSurgery" text="Edit Surgery" />
-                                                <Button fx:id="deleteSurgeryButton" mnemonicParsing="false" onAction="#deleteSurgery" text="Delete Surgery" />
+                                                <Button fx:id="deleteSurgeryButton" mnemonicParsing="false" onAction="#handleDeleteSurgery" text="Delete Surgery" />
                                             </children>
                                         </HBox>
                                     </children>

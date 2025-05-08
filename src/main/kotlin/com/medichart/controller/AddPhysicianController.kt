@@ -14,20 +14,13 @@ import javafx.scene.control.Alert.AlertType
  * Handles user input for a new physician and provides the resulting Physician object back to the caller.
  */
 class AddPhysicianController {
-    @FXML
-    lateinit var nameField: TextField
-    @FXML
-    lateinit var specialtyField: TextField
-    @FXML
-    lateinit var phoneField: TextField
-    @FXML
-    lateinit var faxField: TextField
-    @FXML
-    lateinit var emailField: TextField
-    @FXML
-    lateinit var addressArea: TextArea
-    @FXML
-    lateinit var notesArea: TextArea
+    @FXML lateinit var nameField: TextField
+    @FXML lateinit var specialtyField: TextField
+    @FXML lateinit var phoneField: TextField
+    @FXML lateinit var faxField: TextField
+    @FXML lateinit var emailField: TextField
+    @FXML lateinit var addressArea: TextArea
+    @FXML lateinit var notesArea: TextArea
 
     private var dialogStage: Stage? = null
 
