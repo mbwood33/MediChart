@@ -62,6 +62,7 @@ import kotlin.Pair
  * Handles interactions between the GUI elements and the database.
  */
 class MediChartController {
+    lateinit var editPastMedication: Button
     private lateinit var dbManager: DatabaseManager
 
     // FXML elements for the Current Medications Table
@@ -252,7 +253,7 @@ class MediChartController {
                 val selectedMed = pastMedicationsTable.selectionModel.selectedItem
                 if (selectedMed != null) {
                     event.consume()
-                    handleEditMedication()
+                    handleEditPastMedication()
                 }
             }
             else if (pastMedicationsTable.isEditable && !event.isConsumed) {
